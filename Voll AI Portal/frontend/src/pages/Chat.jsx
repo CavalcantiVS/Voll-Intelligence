@@ -114,6 +114,7 @@ const Chat = () => {
   };
 
   const sendMessage = async (e) => {
+    console.log("FUNÇÃO DISPAROU");
     e.preventDefault();
     if (!input.trim() || loading) return;
 
@@ -148,7 +149,32 @@ const Chat = () => {
         body: JSON.stringify({ sessionId: currentSession.id, content: input }),
       });
       const aiMessage = await res.json();
-      setMessages(prev => [...prev, { ...aiMessage, created_at: new Date().toISOString() }]);
+
+      const fullText = aiMessage.content;
+      let currentText = '';
+
+      const newMessage = {
+        role: 'assistant',
+        content: '',
+        created_at: new Date().toISOString()
+      };
+
+      setMessages(prev => [...prev, newMessage]);
+
+      for (let i = 0; i < fullText.length; i++) {
+        currentText += fullText[i];
+
+        await new Promise(resolve => setTimeout(resolve, 5));
+
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            ...updated[updated.length - 1],
+            content: currentText
+          };
+          return updated;
+        });
+      }
 
       // Auto-rename first message if still default
       if (currentSession.title === 'Nova conversa') {
