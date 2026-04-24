@@ -43,8 +43,6 @@ class AIService {
     if (this.useRealAI) {
       return this._callOpenAI([systemMessage, ...messages]);
     }
-
-    return this._developmentMessage(messages);
   }
 
   /**
@@ -53,31 +51,48 @@ class AIService {
   _developmentMessage(messages) {
     const lastMessage = messages[messages.length - 1]?.content || '';
 
-    return `🚧 **Voll AI em desenvolvimento**
+    return `🚧 Voll AI em desenvolvimento
 
-Recebi sua mensagem:
-
+📩 Mensagem recebida:
 "${lastMessage}"
 
-No momento, o assistente ainda está em fase de construção e não gera respostas automáticas.
+🧠 Interpretação:
+Entendi que você está buscando ajuda relacionada a "${lastMessage.slice(0, 30)}..."
+
+⚙️ Status:
+Essa funcionalidade ainda está sendo construída.
 
 💡 Em breve você poderá:
-- Criar fluxos de chatbot
-- Gerar respostas para clientes
-- Automatizar processos internos
+- Gerar respostas inteligentes
+- Criar automações
+- Integrar com sistemas
 
 Obrigado pela paciência 🙏`;
   }
 
   async _callOpenAI(messages) {
-    const completion = await this.client.chat.completions.create({
-      model: this.model,
-      messages,
-      max_tokens: 2048,
-      temperature: 0.7,
-    });
+    try {
+      const completion = await this.client.chat.completions.create({
+        model: this.model,
+        messages,
+        max_tokens: 1000,
+        temperature: 0.7,
+      });
 
-    return completion.choices[0].message.content;
+      return completion.choices[0].message.content;
+
+    } catch (error) {
+      console.error('[OpenAI ERROR]', error);
+
+      return `⚠️ Erro ao gerar resposta da IA.
+
+Possíveis causas:
+- API Key inválida
+- Limite de uso atingido
+- Problema de conexão
+
+Verifique com o time de desenvolvimento.`;
+    }
   }
 
   _getSystemPrompt(type) {

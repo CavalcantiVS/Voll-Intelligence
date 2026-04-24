@@ -60,21 +60,10 @@ const Chat = () => {
     }
   };
 
-  const createNewSession = async () => {
-    try {
-      const res = await fetch(`${BACKEND}/api/chat/sessions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: 'Nova conversa' }),
-      });
-      const newSession = await res.json();
-      setSessions(prev => [newSession, ...prev]);
-      setActiveSession(newSession);
-      setMessages([]);
-      setTimeout(() => inputRef.current?.focus(), 100);
-    } catch (err) {
-      console.error('Failed to create session:', err);
-    }
+  const createNewSession = () => {
+    setActiveSession(null);
+    setMessages([]);
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
   const deleteSession = async (e, sessionId) => {
@@ -114,7 +103,6 @@ const Chat = () => {
   };
 
   const sendMessage = async (e) => {
-    console.log("FUNÇÃO DISPAROU");
     e.preventDefault();
     if (!input.trim() || loading) return;
 
@@ -164,7 +152,7 @@ const Chat = () => {
       for (let i = 0; i < fullText.length; i++) {
         currentText += fullText[i];
 
-        await new Promise(resolve => setTimeout(resolve, 5));
+        await new Promise(resolve => setTimeout(resolve, 15));
 
         setMessages(prev => {
           const updated = [...prev];
@@ -295,8 +283,8 @@ const Chat = () => {
           </div>
         ) : (
           <div className="chat-messages">
-            {messages.map((msg, i) => (
-              <ChatMessage key={i} message={msg} />
+            {messages.map((msg, index) => (
+              <ChatMessage key={msg.id || msg.created_at || `msg-${index}`} message={msg} />
             ))}
             {loading && (
               <div className="chat-message chat-message--ai">
