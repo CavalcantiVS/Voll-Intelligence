@@ -1,7 +1,9 @@
 import React from 'react';
 import { Settings as SettingsIcon, Save, Database, Shield, Monitor } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const Settings = () => {
+  const { user } = useAuth();
   return (
     <div className="generator-page">
       <div className="dashboard-header">
@@ -42,17 +44,17 @@ const Settings = () => {
         <form>
           <div className="form-group">
             <label>Nome</label>
-            <input type="text" className="form-control" value="Admin User" disabled />
+            <input type="text" className="form-control" value={user?.name || ''} disabled />
           </div>
 
           <div className="form-group">
             <label>E-mail</label>
-            <input type="email" className="form-control" value="admin@voll.com" disabled />
+            <input type="email" className="form-control" value={user?.email || ''} disabled />
           </div>
 
           <div className="form-group">
             <label>Nível de Acesso</label>
-            <input type="text" className="form-control" value="Administrador Geral" disabled />
+            <input type="text" className="form-control" value={user?.role || ''} disabled />
           </div>
 
           <button type="button" className="btn btn-primary" disabled>

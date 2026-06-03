@@ -1,19 +1,25 @@
 const OpenAI = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 /**
- * Service to handle communication with OpenAI API
- * Falls back to mock responses if OPENAI_API_KEY is not configured
+ * Service to handle communication with Google Gemini or OpenAI APIs
+ * Falls back to mock responses if API keys are not configured
  */
 class AIService {
   constructor() {
-    this.useRealAI = !!process.env.OPENAI_API_KEY;
+    this.useGemini = !!process.env.GEMINI_API_KEY;
+    this.useOpenAI = !!process.env.OPENAI_API_KEY;
 
-    if (this.useRealAI) {
+    if (this.useGemini) {
+      this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      this.geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+      console.log(`[AIService] Using Google Gemini API (model: ${this.geminiModel})`);
+    } else if (this.useOpenAI) {
       this.client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       this.model = process.env.OPENAI_MODEL || 'gpt-4o';
       console.log(`[AIService] Using real OpenAI API (model: ${this.model})`);
     } else {
-      console.warn('[AIService] OPENAI_API_KEY not set — running in mock mode');
+      console.warn('[AIService] No API Key set — running in mock mode');
     }
   }
 
@@ -21,9 +27,13 @@ class AIService {
    * Generate a response for tool prompts
    */
   async generateResponse(sanitizedPrompt, type) {
-    if (this.useRealAI) {
+    const systemPrompt = this._getSystemPrompt(type);
+    
+    if (this.useGemini) {
+      return this._callGemini([], sanitizedPrompt, systemPrompt);
+    } else if (this.useOpenAI) {
       return this._callOpenAI([
-        { role: 'system', content: this._getSystemPrompt(type) },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: sanitizedPrompt }
       ]);
     }
@@ -34,15 +44,21 @@ class AIService {
   /**
    * Generate a chat response
    */
-  async generateChatResponse(messages) {
-    const systemMessage = {
-      role: 'system',
-      content: `Você é o Voll AI, um assistente corporativo interno da Voll Solutions.`
-    };
+  async generateChatResponse(history, newPrompt) {
+    const systemMessageContent = `Você é o Voll AI, um assistente corporativo interno da Voll Solutions.`;
 
-    if (this.useRealAI) {
-      return this._callOpenAI([systemMessage, ...messages]);
+    if (this.useGemini) {
+      return this._callGemini(history, newPrompt, systemMessageContent);
+    } else if (this.useOpenAI) {
+      const systemMessage = {
+        role: 'system',
+        content: systemMessageContent
+      };
+      return this._callOpenAI([systemMessage, ...history, { role: 'user', content: newPrompt }]);
     }
+    
+    // Mock response if no keys
+    return this._mockResponse('Chat', newPrompt);
   }
 
   /**
@@ -92,6 +108,31 @@ Possíveis causas:
 - Problema de conexão
 
 Verifique com o time de desenvolvimento.`;
+    }
+  }
+
+  async _callGemini(history, newPrompt, systemInstruction) {
+    try {
+      const geminiModelConfig = {
+        model: this.geminiModel,
+        ...(systemInstruction && { systemInstruction })
+      };
+      
+      const genModel = this.genAI.getGenerativeModel(geminiModelConfig);
+      
+      // Convert standard history to Gemini history format
+      const formattedHistory = history.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }]
+      }));
+      
+      const chat = genModel.startChat({ history: formattedHistory });
+      const result = await chat.sendMessage(newPrompt);
+      
+      return result.response.text();
+    } catch (error) {
+      console.error('[Gemini ERROR]', error);
+      return `⚠️ Erro ao gerar resposta da IA com Gemini.`;
     }
   }
 

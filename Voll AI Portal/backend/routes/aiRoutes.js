@@ -6,7 +6,7 @@ const pool = require('../db/dbConfig');
 
 router.post('/generate', async (req, res) => {
   try {
-    const { prompt, type } = req.body;
+    const { prompt, type, userId, formData } = req.body;
     
     // Sanitize the prompt
     const sanitizedPrompt = sanitizationService.sanitize(prompt);
@@ -15,11 +15,13 @@ router.post('/generate', async (req, res) => {
     const aiResponse = await aiService.generateResponse(sanitizedPrompt, type);
     
     // Save to DB
-    const userId = '00000000-0000-0000-0000-000000000000'; // Mock Admin User
+    // Fallback to Admin User if no userId provided
+    const uid = userId || '00000000-0000-0000-0000-000000000000';
+    
     await pool.query(
-      `INSERT INTO prompt_history (user_id, type, original_prompt, sanitized_prompt, ai_response)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [userId, type, prompt, sanitizedPrompt, aiResponse]
+      `INSERT INTO prompt_history (user_id, type, original_prompt, form_data, sanitized_prompt, ai_response)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [uid, type, prompt, formData ? JSON.stringify(formData) : null, sanitizedPrompt, aiResponse]
     );
     
     res.json({ originalPrompt: prompt, sanitizedPrompt, result: aiResponse });

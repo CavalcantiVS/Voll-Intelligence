@@ -15,10 +15,13 @@ const initDb = async () => {
         user_id UUID REFERENCES users(id),
         type VARCHAR(50) NOT NULL,
         original_prompt TEXT NOT NULL,
+        form_data JSONB,
         sanitized_prompt TEXT NOT NULL,
         ai_response TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      ALTER TABLE prompt_history ADD COLUMN IF NOT EXISTS form_data JSONB;
 
       CREATE TABLE IF NOT EXISTS chat_sessions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

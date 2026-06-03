@@ -1,102 +1,146 @@
 import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
-  MessageSquare,
-  MessageCircle,
-  Zap,
-  RefreshCcw,
-  History,
+  MessagesSquare,
+  LayoutTemplate,
   Settings,
+  History,
   Search,
-  Bot,
+  Headset,
   Sun,
-  Moon
+  Moon,
+  RefreshCcw,
+  LogOut,
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
+/* ----------------------------------------------------------------
+   Sidebar
+---------------------------------------------------------------- */
 const Sidebar = () => {
-  const navItems = [
-    { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
-    { name: 'Chat IA', path: '/chat', icon: <MessageCircle size={20} /> },
-    { name: 'Fluxos de Chatbot', path: '/chatbots', icon: <Bot size={20} /> },
-    { name: 'Automações', path: '/automations', icon: <Zap size={20} /> },
-    { name: 'Gerador de Respostas', path: '/responses', icon: <MessageSquare size={20} /> },
-    { name: 'Histórico', path: '/history', icon: <History size={20} /> },
-    { name: 'Configurações', path: '/settings', icon: <Settings size={20} /> },
+  const mainItems = [
+    { name: 'Dashboard',            path: '/',            icon: <LayoutDashboard size={18} /> },
+    { name: 'Assistente Voll',      path: '/chat',        icon: <MessagesSquare  size={18} /> },
   ];
+
+  const toolItems = [
+    { name: 'Fluxos de Atendimento', path: '/chatbots',    icon: <LayoutTemplate size={18} /> },
+    { name: 'Assistente de Redação', path: '/responses',   icon: <Headset        size={18} /> },
+    { name: 'Automação Interna',     path: '/automations', icon: <Settings       size={18} /> },
+  ];
+
+  const systemItems = [
+    { name: 'Histórico',     path: '/history',  icon: <History  size={18} /> },
+    { name: 'Configurações', path: '/settings', icon: <Settings size={18} /> },
+  ];
+
+  const renderGroup = (items) =>
+    items.map((item) => (
+      <NavLink
+        key={item.path}
+        to={item.path}
+        end={item.path === '/'}
+        className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+      >
+        {item.icon}
+        <span>{item.name}</span>
+      </NavLink>
+    ));
 
   return (
     <div className="sidebar">
+      {/* Logo */}
       <div className="sidebar-logo">
-        <img src="../images/RemoveFundo Icon.png" alt="Voll Logo" className="logo-img" />
-        <span>Voll Intelligence</span>
+        <img src="../images/RemoveFundo Icon.png" alt="Voll" className="logo-img" />
+        <span>Portal Voll</span>
       </div>
 
-      <div className="sidebar-nav">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          >
-            {item.icon}
-            <span>{item.name}</span>
-          </NavLink>
-        ))}
-      </div>
+      {/* Navigation */}
+      <nav className="sidebar-nav">
+        {renderGroup(mainItems)}
+
+        <div className="nav-section-label">Ferramentas</div>
+        {renderGroup(toolItems)}
+
+        <div className="nav-section-label">Sistema</div>
+        {renderGroup(systemItems)}
+      </nav>
     </div>
   );
 };
 
+/* ----------------------------------------------------------------
+   Header
+---------------------------------------------------------------- */
 const Header = ({ isDarkMode, toggleTheme }) => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
+
+  const initials = user?.name
+    ? user.name.slice(0, 2).toUpperCase()
+    : 'AD';
+
   return (
     <div className="header">
       <div className="header-search">
-        <Search size={18} />
-        <input type="text" placeholder="Pesquisar ferramentas, prompts..." />
+        <Search size={16} />
+        <input type="text" placeholder="Buscar ferramenta ou conversa…" />
       </div>
 
       <div className="header-actions">
-        <button className="btn btn-outline" onClick={toggleTheme} title="Alternar Tema" style={{ padding: '10px' }}>
-          {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+        <button className="btn btn-ghost" onClick={toggleTheme} title="Alternar tema" aria-label="Alternar tema">
+          {isDarkMode ? <Sun size={17} /> : <Moon size={17} />}
         </button>
 
-        <button className="btn btn-primary" onClick={() => window.location.reload()}>
-          <RefreshCcw size={16} />
-          Nova geração
+        <button className="btn btn-ghost" onClick={handleLogout} title="Sair" style={{ color: 'var(--text-secondary)' }}>
+          <LogOut size={17} />
         </button>
 
         <div className="user-profile">
-          <div className="avatar">AD</div>
-          <span style={{ fontWeight: 500, fontSize: '0.9rem', color: 'var(--color-dark)' }}>Admin User</span>
+          <div className="avatar">{initials}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}>{user?.name || 'Admin'}</span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{user?.role || ''}</span>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
+/* ----------------------------------------------------------------
+   Layout
+---------------------------------------------------------------- */
 const Layout = () => {
   const [isDarkMode, setIsDarkMode] = React.useState(false);
 
   React.useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
+    const saved = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+    if (saved === 'dark' || (!saved && prefersDark)) {
       setIsDarkMode(true);
       document.documentElement.setAttribute('data-theme', 'dark');
     }
   }, []);
 
   const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    if (!isDarkMode) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('theme', 'light');
-    }
+    setIsDarkMode((prev) => {
+      const next = !prev;
+      if (next) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'light');
+      }
+      return next;
+    });
   };
 
   return (

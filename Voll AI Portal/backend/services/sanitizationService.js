@@ -8,17 +8,23 @@ class SanitizationService {
     
     let sanitized = text;
     
-    // Replace emails: user@example.com
-    sanitized = sanitized.replace(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi, '[EMAIL]');
+    // Emails
+    sanitized = sanitized.replace(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi, '[DADO_REMOVIDO]');
     
-    // Replace phones
-    sanitized = sanitized.replace(/(?:(?:\+|00)?(55)\s?)?(?:\(?([1-9][0-9])\)?\s?)?(?:((?:9\d|[2-9])\d{3})\-?(\d{4}))/g, '[TELEFONE]');
+    // Phones (Telefone can also be a Pix key)
+    sanitized = sanitized.replace(/(?:(?:\+|00)?(55)\s?)?(?:\(?([1-9][0-9])\)?\s?)?(?:((?:9\d|[2-9])\d{3})\-?(\d{4}))/g, '[DADO_REMOVIDO]');
     
-    // Replace CPF: xxx.xxx.xxx-xx
-    sanitized = sanitized.replace(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g, '[CPF]');
+    // CPF
+    sanitized = sanitized.replace(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g, '[DADO_REMOVIDO]');
     
-    // Replace CNPJ: xx.xxx.xxx/xxxx-xx
-    sanitized = sanitized.replace(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, '[CNPJ]');
+    // CNPJ
+    sanitized = sanitized.replace(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, '[DADO_REMOVIDO]');
+    
+    // Chaves Pix (UUID format)
+    sanitized = sanitized.replace(/\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b/g, '[DADO_REMOVIDO]');
+
+    // Tokens/Senhas
+    sanitized = sanitized.replace(/(?:senha|password|token|bearer)[\s:=]+([^\s,;]+)/gi, 'senha: [DADO_REMOVIDO]');
     
     return sanitized;
   }

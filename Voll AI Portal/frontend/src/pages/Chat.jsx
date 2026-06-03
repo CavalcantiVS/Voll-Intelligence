@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert } from 'lucide-react';
 import ChatMessage from '../components/ChatMessage';
 
 const BACKEND = 'http://localhost:3001';
@@ -15,6 +15,25 @@ const Chat = () => {
   const [editTitle, setEditTitle] = useState('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // ── Sensitive-data detection ────────────────────────────────
+  // Detects CPF (000.000.000-00 or 00000000000) and
+  // CNPJ (00.000.000/0000-00 or 00000000000000) in the input.
+  // Does NOT block sending — just educates the user.
+  const hasSensitiveData = useMemo(() => {
+    if (!input) return false;
+    const cpfFormatted  = /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/;
+    const cpfRaw        = /\b\d{11}\b/;
+    const cnpjFormatted = /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/;
+    const cnpjRaw       = /\b\d{14}\b/;
+    return (
+      cpfFormatted.test(input) ||
+      cpfRaw.test(input)       ||
+      cnpjFormatted.test(input)||
+      cnpjRaw.test(input)
+    );
+  }, [input]);
+  // ────────────────────────────────────────────────────────────
 
   // Load sessions on mount
   useEffect(() => {
@@ -288,13 +307,14 @@ const Chat = () => {
             ))}
             {loading && (
               <div className="chat-message chat-message--ai">
-                <div className="chat-message__avatar"><Bot size={18} /></div>
+                <div className="chat-message__avatar"><Bot size={16} /></div>
                 <div className="chat-message__body">
                   <div className="chat-message__header">
                     <span className="chat-message__sender">Voll AI</span>
                   </div>
                   <div className="chat-typing">
-                    <span></span><span></span><span></span>
+                    <Loader2 size={14} className="spin" />
+                    <span>Voll AI está pensando…</span>
                   </div>
                 </div>
               </div>
@@ -305,7 +325,10 @@ const Chat = () => {
 
         {/* Input area */}
         <div className="chat-input-area">
-          <form onSubmit={sendMessage} className="chat-input-form">
+          <form
+            onSubmit={sendMessage}
+            className={`chat-input-form${hasSensitiveData ? ' chat-input-form--warn' : ''}`}
+          >
             <textarea
               ref={inputRef}
               value={input}
@@ -325,9 +348,20 @@ const Chat = () => {
               {loading ? <Loader2 size={20} className="spin" /> : <Send size={20} />}
             </button>
           </form>
-          <p className="chat-disclaimer">
-            Voll AI pode cometer erros. Dados sensíveis são automaticamente mascarados antes do envio.
-          </p>
+
+          {/* Sensitive-data hint — shown only when CPF/CNPJ detected */}
+          {hasSensitiveData && (
+            <p className="chat-input-warn-hint">
+              <ShieldAlert size={13} />
+              Nota: Lembre-se de não compartilhar dados pessoais de clientes.
+            </p>
+          )}
+
+          {!hasSensitiveData && (
+            <p className="chat-disclaimer">
+              Voll AI pode cometer erros. Dados sensíveis são automaticamente mascarados antes do envio.
+            </p>
+          )}
         </div>
       </div>
     </div>

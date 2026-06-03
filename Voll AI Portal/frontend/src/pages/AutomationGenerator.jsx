@@ -1,151 +1,160 @@
 import React, { useState } from 'react';
-import { Zap, Loader2, Copy, Check } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Settings, Loader2, Copy, Check, FileText } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+
+const Skeleton = () => (
+  <div className="output-panel__loading">
+    <div className="output-skeleton output-skeleton--line output-skeleton--med" />
+    <div className="output-skeleton output-skeleton--line output-skeleton--full" />
+    <div className="output-skeleton output-skeleton--line output-skeleton--short" />
+    <div className="output-skeleton output-skeleton--line output-skeleton--full" />
+    <div className="output-skeleton output-skeleton--line output-skeleton--med" />
+    <div className="output-skeleton output-skeleton--line output-skeleton--full" />
+  </div>
+);
 
 const AutomationGenerator = () => {
-  const [formData, setFormData] = useState({
-    processo: '',
-    sistemas: '',
-    resultado: ''
-  });
+  const location = useLocation();
+  const { user } = useAuth();
   
+  const [formData, setFormData] = useState(
+    location.state?.formData || {
+      processo:  '',
+      sistemas:  '',
+      resultado: '',
+    }
+  );
+
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [copied, setCopied] = useState(false);
+  const [result,  setResult]  = useState(null);
+  const [error,   setError]   = useState('');
+  const [copied,  setCopied]  = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const generatePrompt = () => {
-    return `Desenhe uma automação detalhada para o processo descrito abaixo.
-    
-Processo que deseja automatizar:
-${formData.processo}
-
-Sistemas envolvidos:
-${formData.sistemas}
-
-Resultado esperado:
-${formData.resultado}
-
-Retorne:
-1. Uma sugestão de arquitetura de automação.
-2. A lógica estruturada do fluxo passo-a-passo.
-3. Pseudocódigo ou estrutura de dados sugerida (Payloads, Webhooks, etc).`;
-  };
+  const buildPrompt = () =>
+    `Desenhe uma automação detalhada para o processo descrito abaixo.\n\nProcesso que deseja automatizar:\n${formData.processo}\n\nSistemas envolvidos:\n${formData.sistemas}\n\nResultado esperado:\n${formData.resultado}\n\nRetorne:\n1. Uma sugestão de arquitetura de automação.\n2. A lógica estruturada do fluxo passo a passo.\n3. Pseudocódigo ou estrutura de dados sugerida (Payloads, Webhooks, etc).`;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setResult(null);
-
-    const prompt = generatePrompt();
+    setError('');
 
     try {
-      const response = await fetch('http://localhost:3001/api/ai/generate', {
+      const res = await fetch('http://localhost:3001/api/ai/generate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          prompt,
-          type: 'Automation'
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          prompt: buildPrompt(), 
+          type: 'Automation',
+          userId: user?.id,
+          formData
+        }),
       });
-
-      const data = await response.json();
-      setResult(data);
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Erro ao conectar com o servidor. O backend está rodando no porto 3001?');
+      const data = await res.json();
+      setResult(data.result ?? data);
+    } catch (err) {
+      console.error(err);
+      setError('Não foi possível conectar ao servidor. Verifique se o backend está rodando.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleCopy = () => {
-    if (result && result.result) {
-      navigator.clipboard.writeText(result.result);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    if (!result) return;
+    navigator.clipboard.writeText(typeof result === 'string' ? result : result.result ?? '');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
+
+  const outputText = typeof result === 'string' ? result : result?.result ?? '';
 
   return (
     <div className="generator-page">
       <div className="dashboard-header">
-        <h1>Gerador de Automação</h1>
-        <p>Estruture lógicas de integração e automatização de processos complexos usando IA.</p>
+        <h1>Modelos de Automação Interna</h1>
+        <p>Configure lógicas de integração e automação de processos com suporte estruturado.</p>
       </div>
 
-      <div className="form-card">
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Processo que deseja automatizar</label>
-            <textarea 
-              className="form-control" 
-              name="processo" 
-              value={formData.processo} 
-              onChange={handleChange} 
-              placeholder="Ex: Quando um lead for ganho no CRM, criar um projeto no Asana e enviar mensagem no Slack..."
-              rows={3}
-              required
-            ></textarea>
-          </div>
+      <div className="generator-grid">
 
-          <div className="form-group">
-            <label>Sistemas envolvidos</label>
-            <input 
-              type="text" 
-              className="form-control" 
-              name="sistemas" 
-              value={formData.sistemas} 
-              onChange={handleChange} 
-              placeholder="Ex: HubSpot, Asana, Slack, n8n, Make"
-              required
-            />
-          </div>
+        {/* ── LEFT: Form ── */}
+        <div className="form-card">
+          <form onSubmit={handleSubmit}>
 
-          <div className="form-group">
-            <label>Resultado esperado</label>
-            <textarea 
-              className="form-control" 
-              name="resultado" 
-              value={formData.resultado} 
-              onChange={handleChange} 
-              placeholder="Ex: Aumentar a velocidade de onboarding e não perder detalhes do projeto vendido."
-              rows={2}
-              required
-            ></textarea>
-          </div>
-
-          <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%', justifyContent: 'center' }}>
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <Zap size={18} />}
-            {loading ? 'Gerando automação...' : 'Gerar automação com IA'}
-          </button>
-        </form>
-
-        {result && (
-          <div className="response-box">
-            <h3>Resultado Gerado</h3>
-            <div className="response-content">
-              {result.result}
-            </div>
-            
-            <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '4px', fontSize: '0.85rem' }}>
-              <strong>Prompt Sanitizado:</strong>
-              <pre style={{ whiteSpace: 'pre-wrap', marginTop: '8px', color: '#64748b' }}>{result.sanitizedPrompt}</pre>
+            <div className="form-group">
+              <label htmlFor="auto-processo">Processo a Automatizar</label>
+              <textarea id="auto-processo" className="form-control" name="processo"
+                value={formData.processo} onChange={handleChange} rows={4} required
+                placeholder="Ex: Quando um lead for ganho no CRM, criar um projeto no Asana e enviar mensagem no Slack…" />
             </div>
 
-            <div className="response-actions">
-              <button type="button" className="btn btn-outline" onClick={handleCopy}>
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-                {copied ? 'Copiado!' : 'Copiar Automação'}
-              </button>
+            <div className="form-group">
+              <label htmlFor="auto-sistemas">Sistemas Envolvidos</label>
+              <input id="auto-sistemas" type="text" className="form-control" name="sistemas"
+                value={formData.sistemas} onChange={handleChange} required
+                placeholder="Ex: HubSpot, Asana, Slack, n8n, Make" />
             </div>
+
+            <div className="form-group">
+              <label htmlFor="auto-resultado">Resultado Esperado</label>
+              <textarea id="auto-resultado" className="form-control" name="resultado"
+                value={formData.resultado} onChange={handleChange} rows={3} required
+                placeholder="Ex: Aumentar a velocidade de onboarding e não perder detalhes do projeto vendido." />
+            </div>
+
+            {error && (
+              <p style={{ fontSize: '0.83rem', color: 'var(--voll-red)', marginBottom: '12px' }}>
+                {error}
+              </p>
+            )}
+
+            <button type="submit" className="btn btn-primary"
+              disabled={loading} style={{ width: '100%', justifyContent: 'center' }}>
+              {loading ? <Loader2 size={17} className="spin" /> : <Settings size={17} />}
+              {loading ? 'Gerando automação…' : 'Gerar Modelo de Automação'}
+            </button>
+          </form>
+        </div>
+
+        {/* ── RIGHT: Output panel ── */}
+        <div className="output-panel">
+          <div className="output-panel__header">
+            <span className="output-panel__title">
+              <FileText size={14} />
+              Arquitetura Gerada
+            </span>
+            {outputText && (
+              <div className="output-panel__actions">
+                <button className="btn btn-outline" onClick={handleCopy}
+                  style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
+                  {copied ? <Check size={14} /> : <Copy size={14} />}
+                  {copied ? 'Copiado!' : 'Copiar'}
+                </button>
+              </div>
+            )}
           </div>
-        )}
+
+          <div className="output-panel__body">
+            {loading ? (
+              <Skeleton />
+            ) : outputText ? (
+              <p className="output-text">{outputText}</p>
+            ) : (
+              <div className="output-panel__empty">
+                <Settings size={40} />
+                <p>Preencha o formulário e clique em <strong>Gerar Modelo</strong> para ver o resultado aqui.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );

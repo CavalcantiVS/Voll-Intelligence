@@ -5,8 +5,10 @@ const pool = require('../db/dbConfig');
 // Get history for the current user
 router.get('/', async (req, res) => {
   try {
-    // In a real app, user_id comes from auth token (JWT)
-    const userId = '00000000-0000-0000-0000-000000000000'; // Mock Admin User
+    const { userId } = req.query;
+    if (!userId || userId === 'undefined') {
+      return res.status(400).json({ error: 'userId is required' });
+    }
 
     const result = await pool.query(
       'SELECT * FROM prompt_history WHERE user_id = $1 ORDER BY created_at DESC',
@@ -17,6 +19,18 @@ router.get('/', async (req, res) => {
   } catch (error) {
     console.error('Error fetching history:', error);
     res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
+// Delete history item
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM prompt_history WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting history item:', error);
+    res.status(500).json({ error: 'Failed to delete history item' });
   }
 });
 

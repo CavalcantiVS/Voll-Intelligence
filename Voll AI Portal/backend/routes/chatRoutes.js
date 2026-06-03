@@ -17,13 +17,7 @@ router.post('/message', async (req, res) => {
     // Sanitize user message
     const sanitizedContent = sanitizationService.sanitize(content);
 
-    // Save user message to DB
-    await pool.query(
-      `INSERT INTO chat_messages (session_id, role, content) VALUES ($1, $2, $3)`,
-      [sessionId, 'user', content]
-    );
-
-    // Load conversation history for this session (last 20 messages for context)
+    // Load conversation history for this session BEFORE saving the new message
     const historyResult = await pool.query(
       `SELECT role, content FROM chat_messages 
        WHERE session_id = $1 
@@ -32,18 +26,20 @@ router.post('/message', async (req, res) => {
       [sessionId]
     );
 
-    const messages = historyResult.rows.map(row => ({
+    // Sanitize the history as well before sending to AI
+    const history = historyResult.rows.map(row => ({
       role: row.role,
-      content: row.content
+      content: sanitizationService.sanitize(row.content)
     }));
 
-    // Override last message with sanitized version for AI
-    if (messages.length > 0) {
-      messages[messages.length - 1].content = sanitizedContent;
-    }
+    // Save original user message to DB
+    await pool.query(
+      `INSERT INTO chat_messages (session_id, role, content) VALUES ($1, $2, $3)`,
+      [sessionId, 'user', content]
+    );
 
-    // Generate AI response
-    const aiResponse = await aiService.generateChatResponse(messages);
+    // Generate AI response passing history and the new sanitized prompt
+    const aiResponse = await aiService.generateChatResponse(history, sanitizedContent);
 
     // Save AI response to DB
     await pool.query(
