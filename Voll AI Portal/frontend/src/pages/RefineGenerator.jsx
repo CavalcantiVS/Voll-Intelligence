@@ -26,7 +26,13 @@ Retorne um texto com mais empatia, clareza e que seja apropriado para o atendime
       const response = await fetch('http://localhost:3001/api/ai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, type: 'TextRefinement' })
+        body: JSON.stringify({ 
+          prompt, 
+          type: 'TextRefinement',
+          dlpLevel: localStorage.getItem('dlp_level') || 'rigoroso',
+          aiModel: localStorage.getItem('ai_model') || 'gpt-4o',
+          aiTemp: localStorage.getItem('ai_temp') || '0.7'
+        })
       });
       const data = await response.json();
       setResult(data);

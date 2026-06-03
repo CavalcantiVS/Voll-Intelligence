@@ -7,11 +7,11 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const [email, setEmail]         = useState('');
-  const [password, setPassword]   = useState('');
-  const [showPass, setShowPass]   = useState(false);
-  const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,7 +45,7 @@ const Login = () => {
             className="login-logo__img"
           />
           <div className="login-logo__text">
-            <span className="login-logo__brand">Portal Voll</span>
+            <span className="login-logo__brand">Voll Intelligence</span>
             <span className="login-logo__sub">Plataforma de Atendimento</span>
           </div>
         </div>

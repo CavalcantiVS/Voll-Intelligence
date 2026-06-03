@@ -368,6 +368,11 @@ body {
   padding: 32px 36px;
 }
 
+.page-content.chat-page-container {
+  padding: 0;
+  overflow: hidden;
+}
+
 /* ============================================================
    DASHBOARD
    ============================================================ */

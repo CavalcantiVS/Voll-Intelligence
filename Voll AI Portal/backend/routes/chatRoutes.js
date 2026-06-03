@@ -7,15 +7,17 @@ const sanitizationService = require('../services/sanitizationService');
 // POST /api/chat/message — send a message, receive AI response
 router.post('/message', async (req, res) => {
   try {
-    const { sessionId, content } = req.body;
+    const { sessionId, content, dlpLevel = 'rigoroso', aiModel, aiTemp } = req.body;
     const userId = '00000000-0000-0000-0000-000000000000'; // Mock admin user
 
     if (!content || !content.trim()) {
       return res.status(400).json({ error: 'Message content is required' });
     }
 
-    // Sanitize user message
-    const sanitizedContent = sanitizationService.sanitize(content);
+    // Sanitize user message if dlpLevel is 'rigoroso'
+    const sanitizedContent = dlpLevel === 'rigoroso'
+      ? sanitizationService.sanitize(content)
+      : content;
 
     // Load conversation history for this session BEFORE saving the new message
     const historyResult = await pool.query(
@@ -26,10 +28,10 @@ router.post('/message', async (req, res) => {
       [sessionId]
     );
 
-    // Sanitize the history as well before sending to AI
+    // Sanitize the history as well before sending to AI if dlpLevel is 'rigoroso'
     const history = historyResult.rows.map(row => ({
       role: row.role,
-      content: sanitizationService.sanitize(row.content)
+      content: dlpLevel === 'rigoroso' ? sanitizationService.sanitize(row.content) : row.content
     }));
 
     // Save original user message to DB
@@ -39,7 +41,7 @@ router.post('/message', async (req, res) => {
     );
 
     // Generate AI response passing history and the new sanitized prompt
-    const aiResponse = await aiService.generateChatResponse(history, sanitizedContent);
+    const aiResponse = await aiService.generateChatResponse(history, sanitizedContent, { model: aiModel, temperature: aiTemp });
 
     // Save AI response to DB
     await pool.query(

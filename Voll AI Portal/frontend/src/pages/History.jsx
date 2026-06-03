@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History as HistoryIcon, Copy, RotateCcw, Download, Clock, Inbox } from 'lucide-react';
+import { History as HistoryIcon, Copy, RotateCcw, Download, Clock, Inbox, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 /* ----------------------------------------------------------------
@@ -47,6 +47,7 @@ const History = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [expandedIds, setExpandedIds] = useState({});
 
   const fetchHistory = useCallback(async () => {
     if (!user?.id) return;
@@ -113,6 +114,22 @@ const History = () => {
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });
+
+  const toggleExpand = (id) => {
+    setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Tem certeza que deseja apagar este registro?')) return;
+    try {
+      const res = await fetch(`http://localhost:3001/api/history/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Falha ao deletar');
+      setHistory(prev => prev.filter(item => item.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert('Não foi possível apagar o registro.');
+    }
+  };
 
   return (
     <div className="history-page">
@@ -186,6 +203,14 @@ const History = () => {
                     <RotateCcw size={15} />
                     Reutilizar
                   </button>
+                  <button
+                    className="btn btn-danger"
+                    title="Apagar registro"
+                    onClick={() => handleDelete(item.id)}
+                    style={{ padding: '8px' }}
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
               </div>
 
@@ -193,17 +218,33 @@ const History = () => {
               <div className="history-card__body">
                 <div className="history-pane">
                   <p className="history-pane__label">Prompt Original</p>
-                  <div className="history-pane__content">
+                  <div className={`history-pane__content ${expandedIds[item.id] ? 'history-pane__content--expanded' : ''}`}>
                     {item.original_prompt}
+                    {!expandedIds[item.id] && <div className="history-pane__content-fade" />}
                   </div>
                 </div>
 
                 <div className="history-pane history-pane--response">
                   <p className="history-pane__label">Resposta Gerada</p>
-                  <div className="history-pane__content">
+                  <div className={`history-pane__content ${expandedIds[item.id] ? 'history-pane__content--expanded' : ''}`}>
                     {item.ai_response}
+                    {!expandedIds[item.id] && <div className="history-pane__content-fade" />}
                   </div>
                 </div>
+              </div>
+
+              <div style={{ padding: '0 20px 16px', borderTop: '1px solid var(--border)', backgroundColor: 'var(--bg-surface)', borderRadius: '0 0 var(--radius-md) var(--radius-md)' }}>
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => toggleExpand(item.id)}
+                  style={{ width: '100%', justifyContent: 'center', border: 'none', color: 'var(--text-secondary)' }}
+                >
+                  {expandedIds[item.id] ? (
+                    <><ChevronUp size={16} /> Recolher visualização</>
+                  ) : (
+                    <><ChevronDown size={16} /> Ampliar visualização</>
+                  )}
+                </button>
               </div>
 
             </div>

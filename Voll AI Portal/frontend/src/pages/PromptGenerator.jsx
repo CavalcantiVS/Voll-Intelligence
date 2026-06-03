@@ -29,7 +29,13 @@ Retorne um prompt altamente qualificado, detalhado e pronto para ser copiado e c
       const response = await fetch('http://localhost:3001/api/ai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, type: 'PromptEngineering' })
+        body: JSON.stringify({ 
+          prompt, 
+          type: 'PromptEngineering',
+          dlpLevel: localStorage.getItem('dlp_level') || 'rigoroso',
+          aiModel: localStorage.getItem('ai_model') || 'gpt-4o',
+          aiTemp: localStorage.getItem('ai_temp') || '0.7'
+        })
       });
       const data = await response.json();
       setResult(data);

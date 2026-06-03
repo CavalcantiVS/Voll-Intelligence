@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   MessagesSquare,
@@ -53,7 +53,7 @@ const Sidebar = () => {
       {/* Logo */}
       <div className="sidebar-logo">
         <img src="../images/RemoveFundo Icon.png" alt="Voll" className="logo-img" />
-        <span>Portal Voll</span>
+        <span>Voll Intelligence</span>
       </div>
 
       {/* Navigation */}
@@ -119,28 +119,32 @@ const Header = ({ isDarkMode, toggleTheme }) => {
 ---------------------------------------------------------------- */
 const Layout = () => {
   const [isDarkMode, setIsDarkMode] = React.useState(false);
+  const location = useLocation();
+  const isChatPage = location.pathname === '/chat';
 
   React.useEffect(() => {
-    const saved = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (saved === 'dark' || (!saved && prefersDark)) {
-      setIsDarkMode(true);
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
+    const handleThemeChange = () => {
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = saved === 'dark' || (!saved && prefersDark);
+      setIsDarkMode(isDark);
+      if (isDark) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
+    };
+    handleThemeChange();
+    window.addEventListener('theme-change', handleThemeChange);
+    return () => window.removeEventListener('theme-change', handleThemeChange);
   }, []);
 
   const toggleTheme = () => {
-    setIsDarkMode((prev) => {
-      const next = !prev;
-      if (next) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        localStorage.setItem('theme', 'dark');
-      } else {
-        document.documentElement.removeAttribute('data-theme');
-        localStorage.setItem('theme', 'light');
-      }
-      return next;
-    });
+    const saved = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const currentIsDark = saved === 'dark' || (!saved && prefersDark);
+    localStorage.setItem('theme', currentIsDark ? 'light' : 'dark');
+    window.dispatchEvent(new Event('theme-change'));
   };
 
   return (
@@ -148,7 +152,7 @@ const Layout = () => {
       <Sidebar />
       <div className="main-content">
         <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
-        <div className="page-content">
+        <div className={`page-content${isChatPage ? ' chat-page-container' : ''}`}>
           <Outlet />
         </div>
       </div>

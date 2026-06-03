@@ -57,7 +57,10 @@ const ResponseGenerator = () => {
           prompt: buildPrompt(), 
           type: 'ResponseGenerator',
           userId: user?.id,
-          formData
+          formData,
+          dlpLevel: localStorage.getItem('dlp_level') || 'rigoroso',
+          aiModel: localStorage.getItem('ai_model') || 'gpt-4o',
+          aiTemp: localStorage.getItem('ai_temp') || '0.7'
         }),
       });
       const data = await res.json();

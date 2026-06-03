@@ -22,6 +22,9 @@ const Chat = () => {
   // Does NOT block sending — just educates the user.
   const hasSensitiveData = useMemo(() => {
     if (!input) return false;
+    const dlp = localStorage.getItem('dlp_level') || 'rigoroso';
+    if (dlp === 'desativado') return false;
+    
     const cpfFormatted  = /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/;
     const cpfRaw        = /\b\d{11}\b/;
     const cnpjFormatted = /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/;
@@ -153,7 +156,13 @@ const Chat = () => {
       const res = await fetch(`${BACKEND}/api/chat/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: currentSession.id, content: input }),
+        body: JSON.stringify({ 
+          sessionId: currentSession.id, 
+          content: input,
+          dlpLevel: localStorage.getItem('dlp_level') || 'rigoroso',
+          aiModel: localStorage.getItem('ai_model') || 'gpt-4o',
+          aiTemp: localStorage.getItem('ai_temp') || '0.7'
+        }),
       });
       const aiMessage = await res.json();
 

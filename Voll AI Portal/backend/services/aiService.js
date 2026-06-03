@@ -26,39 +26,59 @@ class AIService {
   /**
    * Generate a response for tool prompts
    */
-  async generateResponse(sanitizedPrompt, type) {
+  async generateResponse(sanitizedPrompt, type, options = {}) {
     const systemPrompt = this._getSystemPrompt(type);
+    const model = options.model || (this.useGemini ? this.geminiModel : this.model || 'gpt-4o');
+    const temperature = options.temperature !== undefined ? parseFloat(options.temperature) : 0.7;
     
-    if (this.useGemini) {
-      return this._callGemini([], sanitizedPrompt, systemPrompt);
-    } else if (this.useOpenAI) {
+    const isGeminiModel = model && model.toLowerCase().includes('gemini');
+
+    if (isGeminiModel && (this.useGemini || process.env.GEMINI_API_KEY)) {
+      if (!this.genAI && process.env.GEMINI_API_KEY) {
+        this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      }
+      return this._callGemini([], sanitizedPrompt, systemPrompt, model, temperature);
+    } else if (!isGeminiModel && (this.useOpenAI || process.env.OPENAI_API_KEY)) {
+      if (!this.client && process.env.OPENAI_API_KEY) {
+        this.client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      }
       return this._callOpenAI([
         { role: 'system', content: systemPrompt },
         { role: 'user', content: sanitizedPrompt }
-      ]);
+      ], model, temperature);
     }
 
-    return this._mockResponse(type, sanitizedPrompt);
+    return this._mockResponse(type, sanitizedPrompt, model, temperature);
   }
 
   /**
    * Generate a chat response
    */
-  async generateChatResponse(history, newPrompt) {
+  async generateChatResponse(history, newPrompt, options = {}) {
     const systemMessageContent = `Você é o Voll AI, um assistente corporativo interno da Voll Solutions.`;
+    const model = options.model || (this.useGemini ? this.geminiModel : this.model || 'gpt-4o');
+    const temperature = options.temperature !== undefined ? parseFloat(options.temperature) : 0.7;
 
-    if (this.useGemini) {
-      return this._callGemini(history, newPrompt, systemMessageContent);
-    } else if (this.useOpenAI) {
+    const isGeminiModel = model && model.toLowerCase().includes('gemini');
+
+    if (isGeminiModel && (this.useGemini || process.env.GEMINI_API_KEY)) {
+      if (!this.genAI && process.env.GEMINI_API_KEY) {
+        this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      }
+      return this._callGemini(history, newPrompt, systemMessageContent, model, temperature);
+    } else if (!isGeminiModel && (this.useOpenAI || process.env.OPENAI_API_KEY)) {
+      if (!this.client && process.env.OPENAI_API_KEY) {
+        this.client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      }
       const systemMessage = {
         role: 'system',
         content: systemMessageContent
       };
-      return this._callOpenAI([systemMessage, ...history, { role: 'user', content: newPrompt }]);
+      return this._callOpenAI([systemMessage, ...history, { role: 'user', content: newPrompt }], model, temperature);
     }
     
     // Mock response if no keys
-    return this._mockResponse('Chat', newPrompt);
+    return this._mockResponse('Chat', newPrompt, model, temperature);
   }
 
   /**
@@ -86,13 +106,13 @@ Essa funcionalidade ainda está sendo construída.
 Obrigado pela paciência 🙏`;
   }
 
-  async _callOpenAI(messages) {
+  async _callOpenAI(messages, model = this.model, temperature = 0.7) {
     try {
       const completion = await this.client.chat.completions.create({
-        model: this.model,
+        model: model || 'gpt-4o',
         messages,
         max_tokens: 1000,
-        temperature: 0.7,
+        temperature: parseFloat(temperature),
       });
 
       return completion.choices[0].message.content;
@@ -111,11 +131,14 @@ Verifique com o time de desenvolvimento.`;
     }
   }
 
-  async _callGemini(history, newPrompt, systemInstruction) {
+  async _callGemini(history, newPrompt, systemInstruction, model = this.geminiModel, temperature = 0.7) {
     try {
       const geminiModelConfig = {
-        model: this.geminiModel,
-        ...(systemInstruction && { systemInstruction })
+        model: model || 'gemini-1.5-flash',
+        ...(systemInstruction && { systemInstruction }),
+        generationConfig: {
+          temperature: parseFloat(temperature)
+        }
       };
       
       const genModel = this.genAI.getGenerativeModel(geminiModelConfig);

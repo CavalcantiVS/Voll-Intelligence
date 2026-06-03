@@ -6,13 +6,15 @@ const pool = require('../db/dbConfig');
 
 router.post('/generate', async (req, res) => {
   try {
-    const { prompt, type, userId, formData } = req.body;
+    const { prompt, type, userId, formData, dlpLevel = 'rigoroso', aiModel, aiTemp } = req.body;
     
-    // Sanitize the prompt
-    const sanitizedPrompt = sanitizationService.sanitize(prompt);
+    // Sanitize the prompt only if dlpLevel is 'rigoroso'
+    const sanitizedPrompt = dlpLevel === 'rigoroso'
+      ? sanitizationService.sanitize(prompt)
+      : prompt;
     
     // Call AI Service
-    const aiResponse = await aiService.generateResponse(sanitizedPrompt, type);
+    const aiResponse = await aiService.generateResponse(sanitizedPrompt, type, { model: aiModel, temperature: aiTemp });
     
     // Save to DB
     // Fallback to Admin User if no userId provided
