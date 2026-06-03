@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History as HistoryIcon, Copy, RotateCcw, Download, Clock, Inbox, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { History as HistoryIcon, Copy, RotateCcw, Download, Clock, Inbox, Trash2, ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 /* ----------------------------------------------------------------
@@ -48,6 +48,10 @@ const History = () => {
   const [error, setError] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [expandedIds, setExpandedIds] = useState({});
+
+  // Filtering states
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchHistory = useCallback(async () => {
     if (!user?.id) return;
@@ -105,8 +109,23 @@ const History = () => {
       ChatbotFlow:       'Fluxo de Atendimento',
       ResponseGenerator: 'Resposta de Atendimento',
       Automation:        'Automação Interna',
+      Documentation:     'Documentação Técnica',
+      PromptEngineering: 'Engenharia de Prompt',
+      TextRefinement:    'Melhoria de Texto',
     };
     return labels[type] || type;
+  };
+
+  const getBadgeClass = (type) => {
+    const classes = {
+      ChatbotFlow:       'badge-blue',
+      ResponseGenerator: 'badge-green',
+      Automation:        'badge-purple',
+      Documentation:     'badge-orange',
+      PromptEngineering: 'badge-teal',
+      TextRefinement:    'badge-pink',
+    };
+    return `badge ${classes[type] || 'badge-gray'}`;
   };
 
   const formatDate = (ts) =>
@@ -131,6 +150,30 @@ const History = () => {
     }
   };
 
+  // Memoized filter and search execution
+  const categories = useMemo(() => {
+    return [
+      { id: 'all', label: 'Todos' },
+      { id: 'ChatbotFlow', label: 'Fluxos' },
+      { id: 'ResponseGenerator', label: 'Respostas' },
+      { id: 'Automation', label: 'Automações' },
+      { id: 'Documentation', label: 'Docs' },
+      { id: 'PromptEngineering', label: 'Prompts' },
+      { id: 'TextRefinement', label: 'Refinamentos' },
+    ];
+  }, []);
+
+  const filteredHistory = useMemo(() => {
+    return history.filter(item => {
+      const matchesFilter = selectedFilter === 'all' || item.type === selectedFilter;
+      const matchesSearch = searchQuery.trim() === '' || 
+        (item.original_prompt || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.ai_response || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        formatType(item.type).toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesFilter && matchesSearch;
+    });
+  }, [history, selectedFilter, searchQuery]);
+
   return (
     <div className="history-page">
       <div className="dashboard-header">
@@ -154,7 +197,7 @@ const History = () => {
         </div>
       )}
 
-      {/* ── Empty state ── */}
+      {/* ── Empty state (Database empty) ── */}
       {!loading && !error && history.length === 0 && (
         <div className="history-empty">
           <Inbox size={36} />
@@ -162,16 +205,70 @@ const History = () => {
         </div>
       )}
 
+      {/* ── Search & Filters Bar ── */}
+      {!loading && !error && history.length > 0 && (
+        <div className="history-filters-container">
+          <div className="history-search-wrapper" style={{ position: 'relative' }}>
+            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            <input
+              type="text"
+              placeholder="Pesquisar por palavras-chave..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="form-control history-search-input"
+              style={{ paddingLeft: '36px' }}
+            />
+          </div>
+          
+          <div className="history-filter-tabs">
+            {categories.map(cat => {
+              const count = cat.id === 'all' 
+                ? history.length 
+                : history.filter(h => h.type === cat.id).length;
+              
+              // Only show filter buttons for categories that have entries (or the 'all' button)
+              if (cat.id !== 'all' && count === 0) return null;
+              
+              return (
+                <button
+                  key={cat.id}
+                  className={`filter-tab ${selectedFilter === cat.id ? 'active' : ''}`}
+                  onClick={() => setSelectedFilter(cat.id)}
+                >
+                  {cat.label}
+                  <span className="filter-count">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Empty Search Results State ── */}
+      {!loading && !error && history.length > 0 && filteredHistory.length === 0 && (
+        <div className="history-empty" style={{ padding: '60px 20px', border: '1px dashed var(--border)', borderRadius: 'var(--radius-lg)' }}>
+          <Filter size={36} style={{ color: 'var(--text-muted)', marginBottom: '12px' }} />
+          <p>Nenhum registro encontrado para os filtros selecionados.</p>
+          <button 
+            className="btn btn-outline" 
+            onClick={() => { setSelectedFilter('all'); setSearchQuery(''); }}
+            style={{ marginTop: '12px' }}
+          >
+            Limpar Filtros
+          </button>
+        </div>
+      )}
+
       {/* ── History list ── */}
-      {!loading && history.length > 0 && (
+      {!loading && filteredHistory.length > 0 && (
         <div className="history-list">
-          {history.map((item) => (
+          {filteredHistory.map((item) => (
             <div key={item.id} className="history-card">
 
               {/* Card header */}
               <div className="history-card__header">
                 <div className="history-card__meta">
-                  <span className="badge badge-red">{formatType(item.type)}</span>
+                  <span className={getBadgeClass(item.type)}>{formatType(item.type)}</span>
                   <span className="history-card__date">
                     <Clock size={13} />
                     {formatDate(item.created_at)}

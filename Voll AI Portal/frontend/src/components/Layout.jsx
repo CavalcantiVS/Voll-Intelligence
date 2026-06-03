@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -77,10 +77,60 @@ const Header = ({ isDarkMode, toggleTheme }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false);
+  const [sessions, setSessions] = useState([]);
+  const searchRef = useRef(null);
+
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
   };
+
+  const handleFocus = async () => {
+    setFocused(true);
+    try {
+      const res = await fetch('http://localhost:3001/api/chat/sessions');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setSessions(data);
+      }
+    } catch (err) {
+      console.error('Failed to load chat sessions in search bar:', err);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const tools = useMemo(() => [
+    { name: 'Dashboard',            path: '/',            icon: <LayoutDashboard size={14} /> },
+    { name: 'Assistente Voll (Chat)', path: '/chat',        icon: <MessagesSquare  size={14} /> },
+    { name: 'Fluxos de Atendimento', path: '/chatbots',    icon: <LayoutTemplate size={14} /> },
+    { name: 'Assistente de Redação', path: '/responses',   icon: <Headset        size={14} /> },
+    { name: 'Automação Interna',     path: '/automations', icon: <Settings       size={14} /> },
+    { name: 'Histórico',            path: '/history',     icon: <History        size={14} /> },
+    { name: 'Configurações',        path: '/settings',    icon: <Settings       size={14} /> },
+  ], []);
+
+  const filteredTools = useMemo(() => {
+    if (!query) return tools;
+    return tools.filter(t => t.name.toLowerCase().includes(query.toLowerCase()));
+  }, [query, tools]);
+
+  const filteredSessions = useMemo(() => {
+    if (!query) return sessions.slice(0, 5);
+    return sessions.filter(s => (s.title || '').toLowerCase().includes(query.toLowerCase())).slice(0, 5);
+  }, [query, sessions]);
+
+  const hasResults = filteredTools.length > 0 || filteredSessions.length > 0;
 
   const initials = user?.name
     ? user.name.slice(0, 2).toUpperCase()
@@ -88,9 +138,69 @@ const Header = ({ isDarkMode, toggleTheme }) => {
 
   return (
     <div className="header">
-      <div className="header-search">
-        <Search size={16} />
-        <input type="text" placeholder="Buscar ferramenta ou conversa…" />
+      <div className="header-search-wrapper" ref={searchRef}>
+        <div className="header-search">
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="Buscar ferramenta ou conversa…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={handleFocus}
+          />
+        </div>
+
+        {focused && (
+          <div className="search-results-dropdown">
+            {filteredTools.length > 0 && (
+              <>
+                <div className="search-category-label">Ferramentas</div>
+                {filteredTools.map((tool) => (
+                  <button
+                    key={tool.path}
+                    className="search-item"
+                    onClick={() => {
+                      setQuery('');
+                      setFocused(false);
+                      navigate(tool.path);
+                    }}
+                  >
+                    <span className="search-item-icon">{tool.icon}</span>
+                    <span className="search-item-title">{tool.name}</span>
+                  </button>
+                ))}
+              </>
+            )}
+
+            {filteredSessions.length > 0 && (
+              <>
+                <div className="search-category-label">Conversas Recentes</div>
+                {filteredSessions.map((session) => (
+                  <button
+                    key={session.id}
+                    className="search-item"
+                    onClick={() => {
+                      setQuery('');
+                      setFocused(false);
+                      navigate('/chat', { state: { selectSessionId: session.id } });
+                    }}
+                  >
+                    <span className="search-item-icon" style={{ color: 'var(--text-muted)' }}>
+                      <MessagesSquare size={14} />
+                    </span>
+                    <span className="search-item-title">{session.title}</span>
+                  </button>
+                ))}
+              </>
+            )}
+
+            {!hasResults && (
+              <div className="search-no-results">
+                Nenhuma ferramenta ou conversa encontrada
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="header-actions">

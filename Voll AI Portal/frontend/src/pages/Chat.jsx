@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert } from 'lucide-react';
 import ChatMessage from '../components/ChatMessage';
 
 const BACKEND = 'http://localhost:3001';
 
 const Chat = () => {
+  const location = useLocation();
+  const selectSessionId = location.state?.selectSessionId;
+
   const [sessions, setSessions] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -38,11 +42,11 @@ const Chat = () => {
   }, [input]);
   // ────────────────────────────────────────────────────────────
 
-  // Load sessions on mount
+  // Load sessions on mount or when selectSessionId changes
   useEffect(() => {
     loadSessions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectSessionId]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -56,6 +60,17 @@ const Chat = () => {
       const data = await res.json();
       if (Array.isArray(data)) {
         setSessions(data);
+        
+        if (selectSessionId) {
+          const matchedSession = data.find(s => s.id === selectSessionId);
+          if (matchedSession) {
+            selectSession(matchedSession);
+            // Clear router state to avoid resetting selection on unrelated renders
+            window.history.replaceState({}, document.title);
+            return;
+          }
+        }
+        
         if (data.length > 0 && !activeSession) {
           selectSession(data[0]);
         }

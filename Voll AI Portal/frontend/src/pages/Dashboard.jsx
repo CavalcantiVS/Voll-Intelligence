@@ -18,7 +18,7 @@ import {
 
 /* ── Period options ─────────────────────────────────────────── */
 const PERIODS = [
-  { label: '7 dias',  days: 7  },
+  { label: '7 dias', days: 7 },
   { label: '14 dias', days: 14 },
   { label: '30 dias', days: 30 },
 ];
@@ -85,11 +85,11 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeDays, setActiveDays] = useState(7);
-  const [chartData,  setChartData]  = useState([]);
-  const [metrics,    setMetrics]    = useState({ atendimentosHoje: 0, fluxosAtivos: 0, respostasEnviadas: 0 });
+  const [chartData, setChartData] = useState([]);
+  const [metrics, setMetrics] = useState({ atendimentosHoje: 0, fluxosAtivos: 0, respostasEnviadas: 0 });
 
   const fetchData = useCallback(async (days) => {
     if (!user?.id) return;
@@ -100,14 +100,14 @@ const Dashboard = () => {
         fetch(`http://localhost:3001/api/dashboard/metrics?userId=${user.id}`),
         fetch(`http://localhost:3001/api/dashboard/chart?userId=${user.id}&days=${days}`)
       ]);
-      
+
       if (!metricsRes.ok || !chartRes.ok) throw new Error('Falha ao carregar dados');
 
       const metricsData = await metricsRes.json();
       const rawChartData = await chartRes.json();
 
       setMetrics(metricsData);
-      
+
       const mappedChartData = rawChartData.map(item => ({
         label: item.date.substring(0, 5), // DD/MM
         date: item.date,
@@ -133,25 +133,25 @@ const Dashboard = () => {
   }, [activeDays]);
 
   const stats = [
-    { label: 'Atendimentos Otimizados', value: metrics.atendimentosHoje, icon: <CheckCircle2 size={22} />, variant: 'primary'   },
-    { label: 'Fluxos Ativos',           value: metrics.fluxosAtivos,     icon: <Layers        size={22} />, variant: 'secondary' },
-    { label: 'Respostas Enviadas',      value: metrics.respostasEnviadas, icon: <MessageSquare size={22} />, variant: 'primary'   },
+    { label: 'Atendimentos Otimizados', value: metrics.atendimentosHoje, icon: <CheckCircle2 size={22} />, variant: 'primary' },
+    { label: 'Fluxos Ativos', value: metrics.fluxosAtivos, icon: <Layers size={22} />, variant: 'secondary' },
+    { label: 'Respostas Enviadas', value: metrics.respostasEnviadas, icon: <MessageSquare size={22} />, variant: 'primary' },
   ];
 
   const features = [
-    { title: 'Modelos de Fluxo de Atendimento', desc: 'Estruture fluxos de suporte padronizados para garantir consistência no atendimento.', icon: <LayoutTemplate size={22} />, path: '/chatbots'    },
-    { title: 'Assistente de Redação Voll',       desc: 'Crie respostas otimizadas e alinhadas ao tom de voz da marca em segundos.',         icon: <Headset        size={22} />, path: '/responses'   },
-    { title: 'Modelos de Automação Interna',     desc: 'Configure lógicas de triagem e processos internos de forma estruturada.',            icon: <Settings       size={22} />, path: '/automations' },
-    { title: 'Base de Conhecimento e APIs',      desc: 'Documente integrações e endpoints para agilizar a resolução de chamados.',           icon: <FileText       size={22} />, path: '/docs'        },
-    { title: 'Revisão e Qualidade de Texto',     desc: 'Refine comunicações para garantir clareza e profissionalismo.',                      icon: <PenTool        size={22} />, path: '/refine'      },
-    { title: 'Padrões de Resposta (Prompts)',     desc: 'Gerencie o banco de comandos corporativos para uso padronizado na Voll.',            icon: <Code2          size={22} />, path: '/prompts'     },
+    { title: 'Modelos de Fluxo de Atendimento', desc: 'Estruture fluxos de suporte padronizados para garantir consistência no atendimento.', icon: <LayoutTemplate size={22} />, path: '/chatbots' },
+    { title: 'Assistente de Redação Voll', desc: 'Crie respostas otimizadas e alinhadas ao tom de voz da marca em segundos.', icon: <Headset size={22} />, path: '/responses' },
+    { title: 'Modelos de Automação Interna', desc: 'Configure lógicas de triagem e processos internos de forma estruturada.', icon: <Settings size={22} />, path: '/automations' },
+    { title: 'Base de Conhecimento e APIs', desc: 'Documente integrações e endpoints para agilizar a resolução de chamados.', icon: <FileText size={22} />, path: '/docs' },
+    { title: 'Revisão e Qualidade de Texto', desc: 'Refine comunicações para garantir clareza e profissionalismo.', icon: <PenTool size={22} />, path: '/refine' },
+    { title: 'Padrões de Resposta (Prompts)', desc: 'Gerencie o banco de comandos corporativos para uso padronizado na Voll.', icon: <Code2 size={22} />, path: '/prompts' },
   ];
 
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h1>Bom dia, Admin 👋</h1>
-        <p>Portal de Atendimento Voll — selecione uma ferramenta para começar.</p>
+        <h1>Olá, Admin! 👋</h1>
+        <p>Portal de Atendimento Voll — Selecione uma ferramenta para começar.</p>
       </div>
 
       {error && (
@@ -164,14 +164,14 @@ const Dashboard = () => {
         {loading
           ? Array.from({ length: 3 }).map((_, i) => <StatSkeleton key={i} />)
           : stats.map((s) => (
-              <div key={s.label} className="stat-card">
-                <div className={`stat-icon ${s.variant}`}>{s.icon}</div>
-                <div className="stat-info">
-                  <h3>{s.label}</h3>
-                  <p>{s.value}</p>
-                </div>
+            <div key={s.label} className="stat-card">
+              <div className={`stat-icon ${s.variant}`}>{s.icon}</div>
+              <div className="stat-info">
+                <h3>{s.label}</h3>
+                <p>{s.value}</p>
               </div>
-            ))}
+            </div>
+          ))}
       </div>
 
       <div className="usage-section">
@@ -206,8 +206,8 @@ const Dashboard = () => {
                 >
                   <defs>
                     <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%"   stopColor="var(--voll-red)" stopOpacity={0.12} />
-                      <stop offset="100%" stopColor="var(--voll-red)" stopOpacity={0}    />
+                      <stop offset="0%" stopColor="var(--voll-red)" stopOpacity={0.12} />
+                      <stop offset="100%" stopColor="var(--voll-red)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
 
@@ -255,24 +255,24 @@ const Dashboard = () => {
         {loading
           ? Array.from({ length: 6 }).map((_, i) => <FeatureSkeleton key={i} />)
           : features.map((f, i) => (
-              <div
-                key={i}
-                className="feature-card"
-                onClick={() => navigate(f.path)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && navigate(f.path)}
-              >
-                <div className="feature-icon">{f.icon}</div>
-                <div>
-                  <h3>{f.title}</h3>
-                  <p>{f.desc}</p>
-                </div>
-                <div className="feature-card-arrow">
-                  <ArrowRight size={16} />
-                </div>
+            <div
+              key={i}
+              className="feature-card"
+              onClick={() => navigate(f.path)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && navigate(f.path)}
+            >
+              <div className="feature-icon">{f.icon}</div>
+              <div>
+                <h3>{f.title}</h3>
+                <p>{f.desc}</p>
               </div>
-            ))}
+              <div className="feature-card-arrow">
+                <ArrowRight size={16} />
+              </div>
+            </div>
+          ))}
       </div>
     </div>
   );

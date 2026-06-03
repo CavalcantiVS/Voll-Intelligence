@@ -12,17 +12,24 @@ const Settings = () => {
   const [aiTemp, setAiTemp] = useState(0.7);
   const [saveStatus, setSaveStatus] = useState(null);
 
-  // Load configuration on mount
+  // Load configuration on mount and listen to external changes (like from header)
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    const savedDlp = localStorage.getItem('dlp_level') || 'rigoroso';
-    const savedModel = localStorage.getItem('ai_model') || 'gpt-4o';
-    const savedTemp = localStorage.getItem('ai_temp') || '0.7';
+    const loadConfig = () => {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      const savedDlp = localStorage.getItem('dlp_level') || 'rigoroso';
+      const savedModel = localStorage.getItem('ai_model') || 'gpt-4o';
+      const savedTemp = localStorage.getItem('ai_temp') || '0.7';
 
-    setTheme(savedTheme);
-    setDlpLevel(savedDlp);
-    setAiModel(savedModel);
-    setAiTemp(parseFloat(savedTemp));
+      setTheme(savedTheme);
+      setDlpLevel(savedDlp);
+      setAiModel(savedModel);
+      setAiTemp(parseFloat(savedTemp));
+    };
+
+    loadConfig();
+
+    window.addEventListener('theme-change', loadConfig);
+    return () => window.removeEventListener('theme-change', loadConfig);
   }, []);
 
   // Dispatch custom theme change event to toggle interface mode instantly
@@ -109,10 +116,19 @@ const Settings = () => {
           </p>
 
           <form onSubmit={handleSave}>
-            {/* Theme Select */}
             <div className="form-group">
               <label htmlFor="set-theme">Tema de Interface</label>
-              <select id="set-theme" className="form-control" value={theme} onChange={(e) => setTheme(e.target.value)}>
+              <select 
+                id="set-theme" 
+                className="form-control" 
+                value={theme} 
+                onChange={(e) => {
+                  const nextTheme = e.target.value;
+                  setTheme(nextTheme);
+                  localStorage.setItem('theme', nextTheme);
+                  window.dispatchEvent(new Event('theme-change'));
+                }}
+              >
                 <option value="light">Tema Claro</option>
                 <option value="dark">Tema Escuro</option>
               </select>
