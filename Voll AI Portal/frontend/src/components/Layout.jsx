@@ -12,6 +12,7 @@ import {
   Moon,
   RefreshCcw,
   LogOut,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -19,6 +20,9 @@ import { useAuth } from '../contexts/AuthContext';
    Sidebar
 ---------------------------------------------------------------- */
 const Sidebar = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Administrador Geral';
+
   const mainItems = [
     { name: 'Dashboard',            path: '/',            icon: <LayoutDashboard size={18} /> },
     { name: 'Assistente Voll',      path: '/chat',        icon: <MessagesSquare  size={18} /> },
@@ -33,6 +37,7 @@ const Sidebar = () => {
   const systemItems = [
     { name: 'Histórico',     path: '/history',  icon: <History  size={18} /> },
     { name: 'Configurações', path: '/settings', icon: <Settings size={18} /> },
+    ...(isAdmin ? [{ name: 'Controle de Acesso', path: '/users', icon: <ShieldCheck size={18} /> }] : []),
   ];
 
   const renderGroup = (items) =>
@@ -110,6 +115,8 @@ const Header = ({ isDarkMode, toggleTheme }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const isAdmin = user?.role === 'Administrador Geral';
+
   const tools = useMemo(() => [
     { name: 'Dashboard',            path: '/',            icon: <LayoutDashboard size={14} /> },
     { name: 'Assistente Voll (Chat)', path: '/chat',        icon: <MessagesSquare  size={14} /> },
@@ -118,7 +125,8 @@ const Header = ({ isDarkMode, toggleTheme }) => {
     { name: 'Automação Interna',     path: '/automations', icon: <Settings       size={14} /> },
     { name: 'Histórico',            path: '/history',     icon: <History        size={14} /> },
     { name: 'Configurações',        path: '/settings',    icon: <Settings       size={14} /> },
-  ], []);
+    ...(isAdmin ? [{ name: 'Controle de Acesso', path: '/users', icon: <ShieldCheck size={14} /> }] : []),
+  ], [isAdmin]);
 
   const filteredTools = useMemo(() => {
     if (!query) return tools;

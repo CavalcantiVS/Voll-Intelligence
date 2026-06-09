@@ -7,6 +7,7 @@ const aiRoutes = require('./routes/aiRoutes');
 const historyRoutes = require('./routes/historyRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,6 +20,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/', (req, res) => {
   res.send('Voll AI Portal Backend Running');

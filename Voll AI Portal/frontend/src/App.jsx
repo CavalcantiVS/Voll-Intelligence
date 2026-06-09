@@ -14,6 +14,7 @@ import RefineGenerator    from './pages/RefineGenerator';
 import PromptGenerator    from './pages/PromptGenerator';
 import History            from './pages/History';
 import Settings           from './pages/Settings';
+import UserManagement     from './pages/UserManagement';
 
 import './index.css';
 
@@ -58,6 +59,7 @@ function AppRoutes() {
         <Route path="prompts"      element={<PromptGenerator />} />
         <Route path="history"      element={<History />} />
         <Route path="settings"     element={<Settings />} />
+        <Route path="users"        element={<UserManagement />} />
       </Route>
 
       {/* Catch-all */}

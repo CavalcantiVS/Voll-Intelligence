@@ -9,7 +9,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 const AuthContext = createContext(null);
 
 const MOCK_USERS = [
-  { id: '00000000-0000-0000-0000-000000000000', email: 'joao.cavalcanti@vollsolutions.com.br', password: '123456', name: 'Admin', role: 'Administrador' },
+  { id: '00000000-0000-0000-0000-000000000000', email: 'joao.cavalcanti@vollsolutions.com.br', password: '123456', name: 'João Cavalcanti', role: 'Administrador Geral' },
   { id: '11111111-1111-1111-1111-111111111111', email: 'suporte@voll.com.br', password: '123456', name: 'Suporte', role: 'Atendente' },
 ];
 
