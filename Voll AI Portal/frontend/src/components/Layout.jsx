@@ -221,7 +221,13 @@ const Header = ({ isDarkMode, toggleTheme }) => {
         </button>
 
         <div className="user-profile">
-          <div className="avatar">{initials}</div>
+          <div className="avatar">
+            {user?.avatar ? (
+              <img src={user.avatar} alt="User Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+            ) : (
+              initials
+            )}
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
             <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}>{user?.name || 'Admin'}</span>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{user?.role || ''}</span>

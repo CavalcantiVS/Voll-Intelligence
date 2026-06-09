@@ -32,7 +32,7 @@ const requireAdmin = async (req, res, next) => {
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, name, email, role, department, status
+      `SELECT id, name, email, role, department, status, avatar
        FROM users
        ORDER BY name ASC`
     );
@@ -47,7 +47,7 @@ router.get('/', requireAdmin, async (req, res) => {
 // Creates a new collaborator (admin only)
 router.post('/', requireAdmin, async (req, res) => {
   try {
-    const { name, email, role, department, status } = req.body;
+    const { name, email, role, department, status, avatar } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ error: 'Nome e e-mail são obrigatórios' });
@@ -60,15 +60,16 @@ router.post('/', requireAdmin, async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      `INSERT INTO users (name, email, role, department, status)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, name, email, role, department, status`,
+      `INSERT INTO users (name, email, role, department, status, avatar)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, name, email, role, department, status, avatar`,
       [
         name.trim(),
         email.trim().toLowerCase(),
         role || 'Colaborador',
         department || 'Atendimento',
         status || 'Ativo',
+        avatar || null,
       ]
     );
 
@@ -84,7 +85,7 @@ router.post('/', requireAdmin, async (req, res) => {
 router.put('/:targetId', requireAdmin, async (req, res) => {
   try {
     const { targetId } = req.params;
-    const { role, status } = req.body;
+    const { role, status, name, email, department, avatar } = req.body;
 
     // Prevent admin from suspending themselves
     if (targetId === req.adminId && status === 'Suspenso') {
@@ -104,6 +105,22 @@ router.put('/:targetId', requireAdmin, async (req, res) => {
       fields.push(`status = $${idx++}`);
       values.push(status);
     }
+    if (name) {
+      fields.push(`name = $${idx++}`);
+      values.push(name.trim());
+    }
+    if (email) {
+      fields.push(`email = $${idx++}`);
+      values.push(email.trim().toLowerCase());
+    }
+    if (department) {
+      fields.push(`department = $${idx++}`);
+      values.push(department);
+    }
+    if (avatar !== undefined) {
+      fields.push(`avatar = $${idx++}`);
+      values.push(avatar);
+    }
 
     if (fields.length === 0) {
       return res.status(400).json({ error: 'Nenhum campo para atualizar' });
@@ -112,7 +129,7 @@ router.put('/:targetId', requireAdmin, async (req, res) => {
     values.push(targetId);
 
     const { rows } = await pool.query(
-      `UPDATE users SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, name, email, role, department, status`,
+      `UPDATE users SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, name, email, role, department, status, avatar`,
       values
     );
 
@@ -124,6 +141,32 @@ router.put('/:targetId', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('Error updating user:', err);
     res.status(500).json({ error: 'Falha ao atualizar colaborador' });
+  }
+});
+
+// DELETE /api/users/:targetId
+// Deletes a specific user (admin only)
+router.delete('/:targetId', requireAdmin, async (req, res) => {
+  try {
+    const { targetId } = req.params;
+
+    if (targetId === req.adminId) {
+      return res.status(400).json({ error: 'Você não pode excluir sua própria conta' });
+    }
+
+    const { rowCount } = await pool.query(
+      `DELETE FROM users WHERE id = $1`,
+      [targetId]
+    );
+
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'Colaborador não encontrado' });
+    }
+
+    res.json({ message: 'Colaborador excluído com sucesso' });
+  } catch (err) {
+    console.error('Error deleting user:', err);
+    res.status(500).json({ error: 'Falha ao excluir colaborador' });
   }
 });
 

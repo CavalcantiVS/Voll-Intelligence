@@ -9,6 +9,13 @@ const initDb = async () => {
         email VARCHAR(255) UNIQUE NOT NULL,
         role VARCHAR(50) DEFAULT 'Operador'
       );
+
+      CREATE TABLE IF NOT EXISTS departments (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) UNIQUE NOT NULL,
+        order_index INTEGER DEFAULT 0
+      );
+
       
       CREATE TABLE IF NOT EXISTS prompt_history (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -43,6 +50,14 @@ const initDb = async () => {
     await pool.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS department VARCHAR(100) DEFAULT 'Atendimento';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'Ativo';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;
+      ALTER TABLE departments ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;
+    `);
+
+    await pool.query(`
+      INSERT INTO departments (name)
+      SELECT name FROM (VALUES ('Atendimento'), ('TI'), ('Financeiro'), ('RH'), ('Comercial'), ('Diretoria')) AS v(name)
+      WHERE NOT EXISTS (SELECT 1 FROM departments);
     `);
 
     console.log('Database tables verified/created');
