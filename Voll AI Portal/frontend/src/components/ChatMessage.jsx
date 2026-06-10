@@ -31,6 +31,12 @@ const ChatMessage = ({ message }) => {
           )}
         </div>
         <div className="chat-message__content">
+          {message.file_name && (
+            <div className="chat-message-attachment">
+              <span className="chat-message-attachment-icon">📎</span>
+              <span className="chat-message-attachment-name">{message.file_name}</span>
+            </div>
+          )}
           {isUser ? (
             <p>{message.content}</p>
           ) : (

@@ -4,8 +4,16 @@ const pool = require('../db/dbConfig');
 const aiService = require('../services/aiService');
 const sanitizationService = require('../services/sanitizationService');
 
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});
+
 // POST /api/chat/message — send a message, receive AI response
-router.post('/message', async (req, res) => {
+router.post('/message', upload.single('file'), async (req, res) => {
   try {
     const { sessionId, content, dlpLevel = 'rigoroso', aiModel, aiTemp } = req.body;
     const userId = '00000000-0000-0000-0000-000000000000'; // Mock admin user
@@ -18,6 +26,39 @@ router.post('/message', async (req, res) => {
     const sanitizedContent = dlpLevel === 'rigoroso'
       ? sanitizationService.sanitize(content)
       : content;
+
+    let attachmentParams = null;
+    let dbFileContent = null;
+    let dbFileName = null;
+    let dbFileMime = null;
+
+    if (req.file) {
+      dbFileName = req.file.originalname;
+      dbFileMime = req.file.mimetype;
+      const buffer = req.file.buffer;
+
+      if (dbFileMime === 'application/pdf') {
+        const pdfData = await pdfParse(buffer);
+        // Clean null bytes from parsed PDF text to prevent PostgreSQL crashes
+        let extractedText = (pdfData.text || '').replace(/\x00/g, '').trim();
+        if (extractedText.length === 0) {
+          extractedText = "(O arquivo PDF anexado não contém texto selecionável/extraível. Ele pode ser uma imagem digitalizada ou um documento sem OCR. Por favor, sugira ao usuário tirar capturas de tela das páginas e enviá-las como imagens no chat, já que você possui capacidade de visão.)";
+        }
+        dbFileContent = extractedText;
+        attachmentParams = { fileName: dbFileName, text: dbFileContent };
+      } else if (dbFileMime.startsWith('image/')) {
+        dbFileContent = buffer.toString('base64');
+        attachmentParams = { fileName: dbFileName, base64: dbFileContent, mimeType: dbFileMime };
+      } else {
+        // assume text
+        let extractedText = buffer.toString('utf-8').replace(/\x00/g, '').trim();
+        if (extractedText.length === 0) {
+          extractedText = "(O arquivo de texto anexado está vazio.)";
+        }
+        dbFileContent = extractedText;
+        attachmentParams = { fileName: dbFileName, text: dbFileContent };
+      }
+    }
 
     // Load conversation history for this session BEFORE saving the new message
     const historyResult = await pool.query(
@@ -34,14 +75,18 @@ router.post('/message', async (req, res) => {
       content: dlpLevel === 'rigoroso' ? sanitizationService.sanitize(row.content) : row.content
     }));
 
-    // Save original user message to DB
+    // Save original user message to DB (including file info if present)
     await pool.query(
-      `INSERT INTO chat_messages (session_id, role, content) VALUES ($1, $2, $3)`,
-      [sessionId, 'user', content]
+      `INSERT INTO chat_messages (session_id, role, content, file_name, file_content, file_mimetype) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [sessionId, 'user', content, dbFileName, dbFileContent, dbFileMime]
     );
 
     // Generate AI response passing history and the new sanitized prompt
-    const aiResponse = await aiService.generateChatResponse(history, sanitizedContent, { model: aiModel, temperature: aiTemp });
+    const aiResponse = await aiService.generateChatResponse(history, sanitizedContent, { 
+      model: aiModel, 
+      temperature: aiTemp,
+      attachment: attachmentParams
+    });
 
     // Save AI response to DB
     await pool.query(
@@ -107,7 +152,7 @@ router.get('/sessions/:id/messages', async (req, res) => {
     const { id } = req.params;
 
     const result = await pool.query(
-      `SELECT id, role, content, created_at 
+      `SELECT id, role, content, file_name, created_at 
        FROM chat_messages 
        WHERE session_id = $1 
        ORDER BY created_at ASC`,
@@ -151,6 +196,95 @@ router.delete('/sessions/:id', async (req, res) => {
   } catch (error) {
     console.error('[chatRoutes] Error deleting session:', error);
     res.status(500).json({ error: 'Failed to delete session' });
+  }
+});
+// GET /api/chat/sessions/:id — get single session info with creator details and statistics
+router.get('/sessions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Fetch session details and join user name/avatar
+    const sessionResult = await pool.query(
+      `SELECT s.id, s.title, s.user_id, s.created_at, s.updated_at, u.name as creator_name, u.avatar as creator_avatar
+       FROM chat_sessions s
+       LEFT JOIN users u ON s.user_id = u.id
+       WHERE s.id = $1`,
+      [id]
+    );
+
+    if (sessionResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Conversa não encontrada' });
+    }
+
+    const session = sessionResult.rows[0];
+
+    // Fetch stats (message count and files count)
+    const statsResult = await pool.query(
+      `SELECT COUNT(*) as message_count,
+              COUNT(CASE WHEN file_name IS NOT NULL THEN 1 END) as file_count
+       FROM chat_messages
+       WHERE session_id = $1`,
+      [id]
+    );
+
+    const stats = statsResult.rows[0];
+    session.message_count = parseInt(stats.message_count || 0, 10);
+    session.file_count = parseInt(stats.file_count || 0, 10);
+
+    res.json(session);
+  } catch (error) {
+    console.error('[chatRoutes] Error fetching session:', error);
+    res.status(500).json({ error: 'Failed to fetch session' });
+  }
+});
+
+// POST /api/chat/sessions/:id/clone — clone a shared session
+router.post('/sessions/:id/clone', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = '00000000-0000-0000-0000-000000000000'; // Mock admin user
+
+    // Get original session details
+    const sessionResult = await pool.query(
+      `SELECT title FROM chat_sessions WHERE id = $1`,
+      [id]
+    );
+
+    if (sessionResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Conversa original não encontrada' });
+    }
+
+    const originalTitle = sessionResult.rows[0].title;
+    const newTitle = originalTitle.startsWith('Cópia de ') ? originalTitle : `Cópia de ${originalTitle}`;
+
+    // Create a new session
+    const newSessionResult = await pool.query(
+      `INSERT INTO chat_sessions (user_id, title) VALUES ($1, $2) RETURNING id, title, created_at`,
+      [userId, newTitle]
+    );
+    const newSession = newSessionResult.rows[0];
+
+    // Get all original messages
+    const messagesResult = await pool.query(
+      `SELECT role, content, file_name, file_content, file_mimetype FROM chat_messages 
+       WHERE session_id = $1 
+       ORDER BY created_at ASC`,
+      [id]
+    );
+
+    // Insert original messages into the cloned session
+    for (const msg of messagesResult.rows) {
+      await pool.query(
+        `INSERT INTO chat_messages (session_id, role, content, file_name, file_content, file_mimetype) 
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [newSession.id, msg.role, msg.content, msg.file_name, msg.file_content, msg.file_mimetype]
+      );
+    }
+
+    res.json(newSession);
+  } catch (error) {
+    console.error('[chatRoutes] Error cloning session:', error);
+    res.status(500).json({ error: 'Failed to clone session' });
   }
 });
 

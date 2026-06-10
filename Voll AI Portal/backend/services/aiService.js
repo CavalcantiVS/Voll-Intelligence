@@ -61,11 +61,33 @@ class AIService {
 
     const isGeminiModel = model && model.toLowerCase().includes('gemini');
 
+    // Build the user message content
+    let userContent = newPrompt;
+    let geminiParts = [{ text: newPrompt }];
+
+    if (options.attachment) {
+      if (options.attachment.text) {
+        userContent = `[Conteúdo extraído do arquivo anexado "${options.attachment.fileName}":\n${options.attachment.text}]\n\nPergunta/Instrução do usuário: ${newPrompt}`;
+        geminiParts[0].text = userContent;
+      } else if (options.attachment.base64) {
+        // OpenAI format
+        userContent = [
+          { type: 'text', text: newPrompt },
+          { type: 'image_url', image_url: { url: `data:${options.attachment.mimeType};base64,${options.attachment.base64}` } }
+        ];
+        // Gemini format
+        geminiParts = [
+          { text: newPrompt },
+          { inlineData: { data: options.attachment.base64, mimeType: options.attachment.mimeType } }
+        ];
+      }
+    }
+
     if (isGeminiModel && (this.useGemini || process.env.GEMINI_API_KEY)) {
       if (!this.genAI && process.env.GEMINI_API_KEY) {
         this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
       }
-      return this._callGemini(history, newPrompt, systemMessageContent, model, temperature);
+      return this._callGemini(history, geminiParts, systemMessageContent, model, temperature);
     } else if (!isGeminiModel && (this.useOpenAI || process.env.OPENAI_API_KEY)) {
       if (!this.client && process.env.OPENAI_API_KEY) {
         this.client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -74,7 +96,7 @@ class AIService {
         role: 'system',
         content: systemMessageContent
       };
-      return this._callOpenAI([systemMessage, ...history, { role: 'user', content: newPrompt }], model, temperature);
+      return this._callOpenAI([systemMessage, ...history, { role: 'user', content: userContent }], model, temperature);
     }
     
     // Mock response if no keys
@@ -150,7 +172,7 @@ Verifique com o time de desenvolvimento.`;
       }));
       
       const chat = genModel.startChat({ history: formattedHistory });
-      const result = await chat.sendMessage(newPrompt);
+      const result = await chat.sendMessage(Array.isArray(newPrompt) ? newPrompt : [{ text: newPrompt }]);
       
       return result.response.text();
     } catch (error) {

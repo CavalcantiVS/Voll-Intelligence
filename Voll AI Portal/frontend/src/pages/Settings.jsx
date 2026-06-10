@@ -1,11 +1,88 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Save, Database, Shield, Monitor, Trash2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMsal } from '@azure/msal-react';
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, token, updateUser } = useAuth();
   const { accounts } = useMsal();
+
+  const [nameInput, setNameInput] = useState(user?.name || '');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [avatarBase64, setAvatarBase64] = useState(user?.avatar || '');
+  const [profileStatus, setProfileStatus] = useState(null);
+  const [profileError, setProfileError] = useState('');
+  const avatarInputRef = useRef(null);
+
+  // Sync state when user context changes
+  useEffect(() => {
+    if (user) {
+      setNameInput(user.name || '');
+      setAvatarBase64(user.avatar || '');
+    }
+  }, [user]);
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('A imagem do avatar deve ter no máximo 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarBase64(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    setProfileStatus('saving');
+    setProfileError('');
+    try {
+      const body = {};
+      if (!isMsUser && nameInput.trim()) {
+        body.name = nameInput.trim();
+      }
+      if (avatarBase64 !== user?.avatar) {
+        body.avatar = avatarBase64;
+      }
+      if (!isMsUser && passwordInput.trim()) {
+        body.password = passwordInput.trim();
+      }
+
+      if (Object.keys(body).length === 0) {
+        setProfileStatus('success');
+        setTimeout(() => setProfileStatus(null), 3000);
+        return;
+      }
+
+      const res = await fetch('http://localhost:3001/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao atualizar perfil.');
+      }
+
+      updateUser(data.user);
+      setProfileStatus('success');
+      setPasswordInput('');
+      setTimeout(() => setProfileStatus(null), 3000);
+    } catch (err) {
+      console.error(err);
+      setProfileError(err.message || 'Erro ao atualizar perfil.');
+      setProfileStatus(null);
+    }
+  };
   
   // Detecta se o login foi via Microsoft SSO
   const msAccount = accounts?.[0] || null;
@@ -213,49 +290,105 @@ const Settings = () => {
             <h3>Perfil do Colaborador</h3>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '0.85rem' }}>
               {isMsUser
-                ? 'Informações sincronizadas via Microsoft 365 / Entra ID.'
-                : 'Informações do usuário logado no Portal Voll.'}
+                ? 'Informações sincronizadas via Microsoft 365 / Entra ID. Você pode gerenciar seu avatar local.'
+                : 'Gerencie as informações do seu perfil de usuário no Portal Voll.'}
             </p>
 
-            {/* Avatar + badge de identidade */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', padding: '16px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--bg-card)', border: '2px solid var(--border)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 700, color: 'var(--voll-red)', flexShrink: 0 }}>
-                {displayAvatar
-                  ? <img src={displayAvatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : displayName.slice(0, 2).toUpperCase()}
+            <form onSubmit={handleSaveProfile}>
+              {/* Avatar + badge de identidade */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', padding: '16px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                <div 
+                  onClick={() => avatarInputRef.current?.click()}
+                  style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--bg-card)', border: '2px solid var(--voll-red)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 700, color: 'var(--voll-red)', flexShrink: 0, cursor: 'pointer', position: 'relative' }}
+                  title="Clique para alterar o avatar"
+                >
+                  {avatarBase64
+                    ? <img src={avatarBase64} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : displayName.slice(0, 2).toUpperCase()}
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '0.6rem', textAlign: 'center', padding: '2px 0' }}>
+                    Editar
+                  </div>
+                </div>
+                <input 
+                  type="file"
+                  ref={avatarInputRef}
+                  style={{ display: 'none' }}
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                />
+                
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayEmail}</div>
+                </div>
+                {isMsUser && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#0078d4', color: '#fff', fontSize: '0.7rem', fontWeight: 600, padding: '4px 8px', borderRadius: '99px', flexShrink: 0 }}>
+                    <svg width="10" height="10" viewBox="0 0 21 21" fill="none"><rect x="1" y="1" width="9" height="9" fill="#fff" /><rect x="11" y="1" width="9" height="9" fill="#fff" /><rect x="1" y="11" width="9" height="9" fill="#fff" /><rect x="11" y="11" width="9" height="9" fill="#fff" /></svg>
+                    Microsoft SSO
+                  </div>
+                )}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayEmail}</div>
+
+              <div className="form-group">
+                <label htmlFor="prof-name">Nome</label>
+                <input 
+                  type="text" 
+                  id="prof-name"
+                  className="form-control" 
+                  value={isMsUser ? displayName : nameInput} 
+                  onChange={(e) => setNameInput(e.target.value)}
+                  disabled={isMsUser} 
+                  style={{ cursor: isMsUser ? 'not-allowed' : 'text' }} 
+                  required
+                />
               </div>
-              {isMsUser && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#0078d4', color: '#fff', fontSize: '0.7rem', fontWeight: 600, padding: '4px 8px', borderRadius: '99px', flexShrink: 0 }}>
-                  <svg width="10" height="10" viewBox="0 0 21 21" fill="none"><rect x="1" y="1" width="9" height="9" fill="#fff" /><rect x="11" y="1" width="9" height="9" fill="#fff" /><rect x="1" y="11" width="9" height="9" fill="#fff" /><rect x="11" y="11" width="9" height="9" fill="#fff" /></svg>
-                  Microsoft SSO
+
+              <div className="form-group">
+                <label>E-mail Corporativo (Não editável)</label>
+                <input type="email" className="form-control" value={displayEmail} disabled style={{ cursor: 'not-allowed' }} />
+              </div>
+
+              <div className="form-group">
+                <label>Nível de Acesso (Não editável)</label>
+                <input type="text" className="form-control" value={displayRole} disabled style={{ cursor: 'not-allowed' }} />
+              </div>
+
+              {!isMsUser && (
+                <div className="form-group">
+                  <label htmlFor="prof-pass">Alterar Senha (Deixe em branco para manter a mesma)</label>
+                  <input 
+                    type="password" 
+                    id="prof-pass"
+                    className="form-control" 
+                    value={passwordInput} 
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder="Digite sua nova senha de acesso..."
+                  />
                 </div>
               )}
-            </div>
 
-            <div className="form-group">
-              <label>Nome</label>
-              <input type="text" className="form-control" value={displayName} disabled style={{ cursor: 'not-allowed' }} />
-            </div>
+              {profileError && (
+                <p style={{ fontSize: '0.8rem', color: 'var(--voll-red)', marginBottom: '12px' }}>
+                  ⚠️ {profileError}
+                </p>
+              )}
 
-            <div className="form-group">
-              <label>E-mail Corporativo</label>
-              <input type="email" className="form-control" value={displayEmail} disabled style={{ cursor: 'not-allowed' }} />
-            </div>
+              {profileStatus === 'success' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', backgroundColor: 'rgba(22,163,74,0.1)', padding: '10px 14px', borderRadius: 'var(--radius-md)', marginBottom: '16px', fontSize: '0.85rem' }}>
+                  <CheckCircle2 size={16} />
+                  <span>Perfil atualizado com sucesso!</span>
+                </div>
+              )}
 
-            <div className="form-group">
-              <label>Nível de Acesso</label>
-              <input type="text" className="form-control" value={displayRole} disabled style={{ cursor: 'not-allowed' }} />
-            </div>
-
-            {isMsUser && (
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-                ✓ Conta gerenciada pelo Microsoft Entra ID da Voll Solutions.
-              </p>
-            )}
+              <button 
+                type="submit" 
+                className="btn btn-outline" 
+                disabled={profileStatus === 'saving'} 
+                style={{ width: '100%', justifyContent: 'center', fontWeight: 600 }}
+              >
+                {profileStatus === 'saving' ? 'Salvando Perfil...' : 'Salvar Informações do Perfil'}
+              </button>
+            </form>
           </div>
 
           {/* Danger Zone Card */}

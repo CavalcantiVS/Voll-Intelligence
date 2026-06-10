@@ -166,4 +166,65 @@ router.get('/me', requireAuth, async (req, res) => {
   }
 });
 
+// PUT /api/auth/profile — updates the currently logged in user's own profile (name, avatar, password)
+router.put('/profile', requireAuth, async (req, res) => {
+  try {
+    const { name, avatar, password } = req.body;
+    const userId = req.userId;
+
+    const userResult = await pool.query(
+      `SELECT password_hash FROM users WHERE id = $1`,
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+
+    const user = userResult.rows[0];
+
+    const fields = [];
+    const values = [];
+    let idx = 1;
+
+    if (name && name.trim()) {
+      fields.push(`name = $${idx++}`);
+      values.push(name.trim());
+    }
+
+    if (avatar !== undefined) {
+      fields.push(`avatar = $${idx++}`);
+      values.push(avatar);
+    }
+
+    if (password && password.trim()) {
+      if (!user.password_hash) {
+        return res.status(400).json({ error: 'Contas autenticadas via Microsoft não possuem senha local para alterar.' });
+      }
+      const salt = await bcrypt.hash(password.trim(), 10);
+      fields.push(`password_hash = $${idx++}`);
+      values.push(salt);
+    }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ error: 'Nenhum campo para atualizar' });
+    }
+
+    values.push(userId);
+
+    const updateResult = await pool.query(
+      `UPDATE users SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, name, email, role, department, status, avatar, allowed_screens`,
+      values
+    );
+
+    res.json({
+      message: 'Perfil atualizado com sucesso',
+      user: updateResult.rows[0]
+    });
+  } catch (err) {
+    console.error('Error updating profile:', err);
+    res.status(500).json({ error: 'Erro interno ao atualizar perfil' });
+  }
+});
+
 module.exports = router;

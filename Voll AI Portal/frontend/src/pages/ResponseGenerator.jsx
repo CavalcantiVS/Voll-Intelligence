@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Headset, Loader2, Copy, Check, FileText } from 'lucide-react';
+import { Headset, Loader2, Copy, Check, FileText, Mic, MicOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 /* ----------------------------------------------------------------
@@ -38,6 +38,52 @@ const ResponseGenerator = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  const toggleSpeechRecognition = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Seu navegador não suporta reconhecimento de voz.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Erro no reconhecimento de voz:', event.error);
+      setIsListening(false);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setFormData(prev => ({
+        ...prev,
+        mensagem: prev.mensagem ? prev.mensagem + ' ' + transcript : transcript
+      }));
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
   };
 
   const buildPrompt = () =>
@@ -109,7 +155,19 @@ const ResponseGenerator = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="rg-mensagem">Mensagem do Cliente</label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label htmlFor="rg-mensagem" style={{ marginBottom: 0 }}>Mensagem do Cliente</label>
+                <button
+                  type="button"
+                  onClick={toggleSpeechRecognition}
+                  className={`chat-voice-btn${isListening ? ' chat-voice-btn--recording' : ''}`}
+                  style={{ display: 'flex', gap: '4px', fontSize: '0.75rem', alignItems: 'center', padding: '2px 8px', borderRadius: '4px' }}
+                  title={isListening ? "Parar ditar" : "Ditar mensagem"}
+                >
+                  {isListening ? <MicOff size={14} /> : <Mic size={14} />}
+                  <span>{isListening ? 'Gravando...' : 'Ditar'}</span>
+                </button>
+              </div>
               <textarea id="rg-mensagem" className="form-control" name="mensagem"
                 value={formData.mensagem} onChange={handleChange} rows={5} required
                 placeholder="Cole ou descreva o conteúdo da mensagem do cliente…" />

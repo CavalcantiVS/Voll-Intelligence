@@ -43,8 +43,15 @@ const initDb = async () => {
         session_id UUID REFERENCES chat_sessions(id) ON DELETE CASCADE,
         role VARCHAR(20) NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
         content TEXT NOT NULL,
+        file_name VARCHAR(255),
+        file_content TEXT,
+        file_mimetype VARCHAR(100),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+      
+      ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_name VARCHAR(255);
+      ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_content TEXT;
+      ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_mimetype VARCHAR(100);
     `);
 
     await pool.query(`
