@@ -13,6 +13,8 @@ import {
   RefreshCcw,
   LogOut,
   ShieldCheck,
+  User,
+  Users,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -25,7 +27,7 @@ const Sidebar = () => {
 
   const checkAccess = (path) => {
     if (!user) return false;
-    if (path === '/') return true;
+    if (path === '/' || path === '/profile' || path === '/teams') return true;
     if (path === '/users') return isAdmin;
     if (!user.allowed_screens) return true;
     return user.allowed_screens.includes(path);
@@ -34,6 +36,7 @@ const Sidebar = () => {
   const mainItems = [
     { name: 'Dashboard',            path: '/',            icon: <LayoutDashboard size={18} /> },
     { name: 'Assistente Voll',      path: '/chat',        icon: <MessagesSquare  size={18} /> },
+    { name: 'Espaços de Equipe',     path: '/teams',       icon: <Users           size={18} /> },
   ].filter(item => checkAccess(item.path));
 
   const toolItems = [
@@ -46,6 +49,7 @@ const Sidebar = () => {
   ].filter(item => checkAccess(item.path));
 
   const systemItems = [
+    { name: 'Meu Perfil',    path: '/profile',  icon: <User     size={18} /> },
     { name: 'Histórico',     path: '/history',  icon: <History  size={18} /> },
     { name: 'Configurações', path: '/settings', icon: <Settings size={18} /> },
     ...(isAdmin ? [{ name: 'Controle de Acesso', path: '/users', icon: <ShieldCheck size={18} /> }] : []),
@@ -96,7 +100,9 @@ const Header = ({ isDarkMode, toggleTheme }) => {
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
   const [sessions, setSessions] = useState([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const searchRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   const handleLogout = () => {
     logout();
@@ -121,6 +127,9 @@ const Header = ({ isDarkMode, toggleTheme }) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
         setFocused(false);
       }
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -130,7 +139,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
 
   const checkAccess = (path) => {
     if (!user) return false;
-    if (path === '/') return true;
+    if (path === '/' || path === '/teams') return true;
     if (path === '/users') return isAdmin;
     if (!user.allowed_screens) return true;
     return user.allowed_screens.includes(path);
@@ -139,6 +148,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
   const tools = useMemo(() => [
     { name: 'Dashboard',            path: '/',            icon: <LayoutDashboard size={14} /> },
     { name: 'Assistente Voll (Chat)', path: '/chat',        icon: <MessagesSquare  size={14} /> },
+    { name: 'Espaços de Equipe',     path: '/teams',       icon: <Users           size={14} /> },
     { name: 'Fluxos de Atendimento', path: '/chatbots',    icon: <LayoutTemplate size={14} /> },
     { name: 'Assistente de Redação', path: '/responses',   icon: <Headset        size={14} /> },
     { name: 'Automação Interna',     path: '/automations', icon: <Settings       size={14} /> },
@@ -242,7 +252,12 @@ const Header = ({ isDarkMode, toggleTheme }) => {
           <LogOut size={17} />
         </button>
 
-        <div className="user-profile">
+        <div 
+          className="user-profile" 
+          ref={dropdownRef} 
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          style={{ position: 'relative', cursor: 'pointer', userSelect: 'none' }}
+        >
           <div className="avatar">
             {user?.avatar ? (
               <img src={user.avatar} alt="User Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
@@ -254,6 +269,35 @@ const Header = ({ isDarkMode, toggleTheme }) => {
             <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}>{user?.name || 'Admin'}</span>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{user?.role || ''}</span>
           </div>
+
+          {dropdownOpen && (
+            <div className="profile-dropdown-menu" onClick={(e) => e.stopPropagation()}>
+              <div className="dropdown-header">
+                <span className="dropdown-name">{user?.name || 'Admin'}</span>
+                <span className="dropdown-email">{user?.email || ''}</span>
+              </div>
+              <div className="dropdown-divider" />
+              <button className="dropdown-item" onClick={() => { setDropdownOpen(false); navigate('/profile'); }}>
+                <User size={14} />
+                <span>Meu Perfil</span>
+              </button>
+              <button className="dropdown-item" onClick={() => { setDropdownOpen(false); navigate('/settings'); }}>
+                <Settings size={14} />
+                <span>Configurações</span>
+              </button>
+              {isAdmin && (
+                <button className="dropdown-item" onClick={() => { setDropdownOpen(false); navigate('/users'); }}>
+                  <ShieldCheck size={14} />
+                  <span>Controle de Acesso</span>
+                </button>
+              )}
+              <div className="dropdown-divider" />
+              <button className="dropdown-item logout" onClick={() => { setDropdownOpen(false); handleLogout(); }}>
+                <LogOut size={14} />
+                <span>Sair</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -266,7 +310,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
 const Layout = () => {
   const [isDarkMode, setIsDarkMode] = React.useState(false);
   const location = useLocation();
-  const isChatPage = location.pathname === '/chat';
+  const isChatPage = location.pathname === '/chat' || location.pathname === '/teams';
 
   React.useEffect(() => {
     const handleThemeChange = () => {

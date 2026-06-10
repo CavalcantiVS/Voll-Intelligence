@@ -210,7 +210,73 @@ Verifique com o time de desenvolvimento.`;
       return `⚙️ Automação (modo demo)`;
     }
 
-    return `🤖 Resposta simulada para: "${prompt}"`;
+  }
+
+  /**
+   * Generate a chat response stream (OpenAI with callback or simulated fallback)
+   */
+  async generateChatResponseStream(history, newPrompt, options = {}, onChunk) {
+    const systemMessageContent = `Você é o Voll AI, um assistente corporativo interno da Voll Solutions.`;
+    const model = options.model || (this.useGemini ? this.geminiModel : this.model || 'gpt-4o');
+    const temperature = options.temperature !== undefined ? parseFloat(options.temperature) : 0.7;
+
+    const isGeminiModel = model && model.toLowerCase().includes('gemini');
+
+    // Build the user message content
+    let userContent = newPrompt;
+
+    if (options.attachment) {
+      if (options.attachment.text) {
+        userContent = `[Conteúdo extraído do arquivo anexado "${options.attachment.fileName}":\n${options.attachment.text}]\n\nPergunta/Instrução do usuário: ${newPrompt}`;
+      } else if (options.attachment.base64) {
+        userContent = [
+          { type: 'text', text: newPrompt },
+          { type: 'image_url', image_url: { url: `data:${options.attachment.mimeType};base64,${options.attachment.base64}` } }
+        ];
+      }
+    }
+
+    // OpenAI Real Stream
+    if (!isGeminiModel && (this.useOpenAI || process.env.OPENAI_API_KEY)) {
+      if (!this.client && process.env.OPENAI_API_KEY) {
+        this.client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      }
+      const systemMessage = { role: 'system', content: systemMessageContent };
+      const apiMessages = [systemMessage, ...history, { role: 'user', content: userContent }];
+
+      const stream = await this.client.chat.completions.create({
+        model: model || 'gpt-4o',
+        messages: apiMessages,
+        max_tokens: 1000,
+        temperature: parseFloat(temperature),
+        stream: true
+      });
+
+      let fullText = '';
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        if (content) {
+          fullText += content;
+          onChunk(content);
+        }
+      }
+      return fullText;
+    }
+
+    // Fallback: simulated stream for development/demo mode or Gemini
+    const mockFullText = isGeminiModel 
+      ? await this.generateChatResponse(history, newPrompt, options)
+      : this._mockResponse('Chat', newPrompt);
+      
+    // Emit words gradually
+    const words = mockFullText.split(/(\s+)/);
+    for (const part of words) {
+      if (part) {
+        onChunk(part);
+        await new Promise(resolve => setTimeout(resolve, Math.max(10, Math.min(60, 150 / part.length))));
+      }
+    }
+    return mockFullText;
   }
 }
 

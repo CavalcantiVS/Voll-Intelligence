@@ -54,6 +54,30 @@ const initDb = async () => {
       ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_mimetype VARCHAR(100);
     `);
 
+    // Shared Workspaces (Espaços de Equipe) tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS equipes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        nome VARCHAR(255) NOT NULL,
+        criador_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS membros_equipe (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        equipe_id UUID REFERENCES equipes(id) ON DELETE CASCADE,
+        usuario_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        papel VARCHAR(20) NOT NULL CHECK (papel IN ('admin', 'membro')),
+        status VARCHAR(20) DEFAULT 'pendente' CHECK (status IN ('pendente', 'aceito')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(equipe_id, usuario_id)
+      );
+
+      ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS team_id UUID REFERENCES equipes(id) ON DELETE CASCADE;
+      ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL;
+      ALTER TABLE membros_equipe ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pendente' CHECK (status IN ('pendente', 'aceito'));
+    `);
+
     await pool.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS department VARCHAR(100) DEFAULT 'Atendimento';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'Ativo';

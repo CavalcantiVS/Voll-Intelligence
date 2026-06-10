@@ -6,6 +6,7 @@ import Layout             from './components/Layout';
 import Login              from './pages/Login';
 import Dashboard          from './pages/Dashboard';
 import Chat               from './pages/Chat';
+import TeamChat           from './pages/TeamChat';
 import ChatbotGenerator   from './pages/ChatbotGenerator';
 import ResponseGenerator  from './pages/ResponseGenerator';
 import AutomationGenerator from './pages/AutomationGenerator';
@@ -15,6 +16,7 @@ import PromptGenerator    from './pages/PromptGenerator';
 import History            from './pages/History';
 import Settings           from './pages/Settings';
 import UserManagement     from './pages/UserManagement';
+import Profile            from './pages/Profile';
 
 import './index.css';
 
@@ -36,7 +38,15 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/" replace />;
   }
   
-  if (path !== '/' && path !== '/users' && user.allowed_screens && !user.allowed_screens.includes(path)) {
+  if (
+    path !== '/' &&
+    path !== '/profile' &&
+    path !== '/settings' &&
+    path !== '/users' &&
+    path !== '/teams' &&
+    user.allowed_screens &&
+    !user.allowed_screens.includes(path)
+  ) {
     return <Navigate to="/" replace />;
   }
 
@@ -68,6 +78,7 @@ function AppRoutes() {
       >
         <Route index               element={<Dashboard />} />
         <Route path="chat"         element={<Chat />} />
+        <Route path="teams"        element={<TeamChat />} />
         <Route path="chatbots"     element={<ChatbotGenerator />} />
         <Route path="responses"    element={<ResponseGenerator />} />
         <Route path="automations"  element={<AutomationGenerator />} />
@@ -77,6 +88,7 @@ function AppRoutes() {
         <Route path="history"      element={<History />} />
         <Route path="settings"     element={<Settings />} />
         <Route path="users"        element={<UserManagement />} />
+        <Route path="profile"      element={<Profile />} />
       </Route>
 
       {/* Catch-all */}

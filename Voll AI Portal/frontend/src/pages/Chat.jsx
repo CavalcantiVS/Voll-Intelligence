@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert, Paperclip, Mic, MicOff, Share2 } from 'lucide-react';
 import ChatMessage from '../components/ChatMessage';
+import { useAuth } from '../contexts/AuthContext';
 
 const BACKEND = 'http://localhost:3001';
 
 const Chat = () => {
+  const { user, token } = useAuth();
   const location = useLocation();
   const selectSessionId = location.state?.selectSessionId;
 
@@ -25,74 +27,18 @@ const Chat = () => {
 
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
-
-  const toggleSpeechRecognition = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      return;
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Seu navegador não suporta reconhecimento de voz.");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'pt-BR';
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognition.onerror = (event) => {
-      console.error('Erro no reconhecimento de voz:', event.error);
-      setIsListening(false);
-    };
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setInput(prev => prev ? prev + ' ' + transcript : transcript);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-  };
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // ── Sensitive-data detection ────────────────────────────────
-  // Detects CPF (000.000.000-00 or 00000000000) and
-  // CNPJ (00.000.000/0000-00 or 00000000000000) in the input.
-  // Does NOT block sending — just educates the user.
-  const hasSensitiveData = useMemo(() => {
-    if (!input) return false;
-    const dlp = localStorage.getItem('dlp_level') || 'rigoroso';
-    if (dlp === 'desativado') return false;
-    
-    const cpfFormatted  = /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/;
-    const cpfRaw        = /\b\d{11}\b/;
-    const cnpjFormatted = /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/;
-    const cnpjRaw       = /\b\d{14}\b/;
-    return (
-      cpfFormatted.test(input) ||
-      cpfRaw.test(input)       ||
-      cnpjFormatted.test(input)||
-      cnpjRaw.test(input)
-    );
-  }, [input]);
-  // ────────────────────────────────────────────────────────────
-
-  // Load sessions on mount or check for shared session link
+  // Scroll to bottom
   useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Load shared session or general sessions
+  useEffect(() => {
+    if (!token) return;
     const queryParams = new URLSearchParams(window.location.search);
     const shareId = queryParams.get('share');
 
@@ -101,30 +47,30 @@ const Chat = () => {
     } else {
       loadSessions();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectSessionId]);
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [selectSessionId, token]);
 
   const loadSharedPreview = async (shareId) => {
     setLoading(true);
     setIsSharedPreview(true);
     try {
-      const sessionRes = await fetch(`${BACKEND}/api/chat/sessions/${shareId}`);
+      const sessionRes = await fetch(`${BACKEND}/api/chat/sessions/${shareId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (!sessionRes.ok) {
         throw new Error('Conversa compartilhada não encontrada.');
       }
       const sessionInfo = await sessionRes.json();
       setSharedSessionInfo(sessionInfo);
 
-      const messagesRes = await fetch(`${BACKEND}/api/chat/sessions/${shareId}/messages`);
+      const messagesRes = await fetch(`${BACKEND}/api/chat/sessions/${shareId}/messages`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const messagesData = await messagesRes.json();
       setMessages(messagesData);
       
-      const listRes = await fetch(`${BACKEND}/api/chat/sessions`);
+      const listRes = await fetch(`${BACKEND}/api/chat/sessions`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const listData = await listRes.json();
       if (Array.isArray(listData)) {
         setSessions(listData);
@@ -144,7 +90,8 @@ const Chat = () => {
     setLoading(true);
     try {
       const res = await fetch(`${BACKEND}/api/chat/sessions/${sharedSessionInfo.id}/clone`, {
-        method: 'POST'
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) {
         throw new Error('Falha ao importar conversa compartilhada.');
@@ -152,14 +99,10 @@ const Chat = () => {
       const clonedSession = await res.json();
       
       window.history.replaceState({}, document.title, window.location.pathname);
-      
       setIsSharedPreview(false);
       setSharedSessionInfo(null);
-      
       setSessions(prev => [clonedSession, ...prev]);
-      setActiveSession(clonedSession);
-      
-      await selectSession(clonedSession);
+      selectSession(clonedSession);
     } catch (err) {
       console.error(err);
       alert(err.message || 'Erro ao importar conversa.');
@@ -179,26 +122,26 @@ const Chat = () => {
   const loadSessions = async () => {
     setLoadingSessions(true);
     try {
-      const res = await fetch(`${BACKEND}/api/chat/sessions`);
+      const res = await fetch(`${BACKEND}/api/chat/sessions`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       if (Array.isArray(data)) {
         setSessions(data);
-        
         if (selectSessionId) {
           const matchedSession = data.find(s => s.id === selectSessionId);
           if (matchedSession) {
             selectSession(matchedSession);
-            // Clear router state to avoid resetting selection on unrelated renders
             window.history.replaceState({}, document.title);
             return;
           }
         }
-        
-        if (data.length > 0 && !activeSession) {
-          selectSession(data[0]);
+        // Filter personal sessions (without team_id) to select the first one
+        const personal = data.filter(s => !s.team_id);
+        if (personal.length > 0 && !activeSession) {
+          selectSession(personal[0]);
         }
       } else {
-        console.error('API returned non-array:', data);
         setSessions([]);
       }
     } catch (err) {
@@ -212,7 +155,9 @@ const Chat = () => {
     setActiveSession(session);
     setMessages([]);
     try {
-      const res = await fetch(`${BACKEND}/api/chat/sessions/${session.id}/messages`);
+      const res = await fetch(`${BACKEND}/api/chat/sessions/${session.id}/messages`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       setMessages(data);
     } catch (err) {
@@ -220,16 +165,41 @@ const Chat = () => {
     }
   };
 
-  const createNewSession = () => {
-    setActiveSession(null);
-    setMessages([]);
-    setTimeout(() => inputRef.current?.focus(), 100);
+  const createNewSession = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${BACKEND}/api/chat/sessions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: 'Nova conversa',
+        })
+      });
+      if (!res.ok) throw new Error('Falha ao iniciar conversa.');
+      const newSession = await res.json();
+      setSessions(prev => [newSession, ...prev]);
+      setActiveSession(newSession);
+      setMessages([]);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao iniciar conversa.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const deleteSession = async (e, sessionId) => {
     e.stopPropagation();
+    if (!window.confirm('Excluir esta conversa?')) return;
     try {
-      await fetch(`${BACKEND}/api/chat/sessions/${sessionId}`, { method: 'DELETE' });
+      await fetch(`${BACKEND}/api/chat/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setSessions(prev => prev.filter(s => s.id !== sessionId));
       if (activeSession?.id === sessionId) {
         setActiveSession(null);
@@ -251,7 +221,10 @@ const Chat = () => {
     try {
       await fetch(`${BACKEND}/api/chat/sessions/${sessionId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ title: editTitle }),
       });
       setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, title: editTitle } : s));
@@ -260,6 +233,26 @@ const Chat = () => {
       console.error('Failed to rename session:', err);
     }
     setEditingId(null);
+  };
+
+  const handleEditMessage = async (messageId, newContent) => {
+    try {
+      const res = await fetch(`${BACKEND}/api/chat/messages/${messageId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ content: newContent })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Falha ao salvar edição.');
+      }
+      setMessages(prev => prev.map(m => m.id === messageId ? { ...m, content: newContent } : m));
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   const sendMessage = async (e) => {
@@ -273,7 +266,10 @@ const Chat = () => {
       try {
         const res = await fetch(`${BACKEND}/api/chat/sessions`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ title: input.slice(0, 50) }),
         });
         currentSession = await res.json();
@@ -285,18 +281,19 @@ const Chat = () => {
       }
     }
 
-    const userMessage = { 
-      role: 'user', 
-      content: input, 
-      file_name: selectedFile?.name,
-      created_at: new Date().toISOString() 
-    };
-    setMessages(prev => [...prev, userMessage]);
     const messageInput = input;
     const fileToUpload = selectedFile;
     setInput('');
     setSelectedFile(null);
     setLoading(true);
+
+    const userMessage = { 
+      role: 'user', 
+      content: messageInput, 
+      file_name: fileToUpload?.name,
+      created_at: new Date().toISOString() 
+    };
+    setMessages(prev => [...prev, userMessage]);
 
     try {
       const formData = new FormData();
@@ -311,6 +308,7 @@ const Chat = () => {
 
       const res = await fetch(`${BACKEND}/api/chat/message`, {
         method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       
@@ -320,10 +318,6 @@ const Chat = () => {
       }
       
       const aiMessage = await res.json();
-      if (!aiMessage || !aiMessage.content) {
-        throw new Error('Formato de resposta do servidor inválido');
-      }
-
       const fullText = aiMessage.content;
       const newMessage = {
         role: 'assistant',
@@ -333,18 +327,16 @@ const Chat = () => {
 
       setMessages(prev => [...prev, newMessage]);
 
-      // Efeito de digitação otimizado: ajusta a velocidade dinamicamente de acordo com o tamanho do texto
-      const delayMs = 8; // Intervalo de tempo entre os passos em ms
-      const maxSteps = 50; // Máximo de passos para garantir respostas rápidas mesmo para textos longos
+      // Handle typing animation locally
+      const delayMs = 8;
+      const maxSteps = 50;
       const charsPerStep = Math.max(1, Math.ceil(fullText.length / maxSteps));
       let currentLength = 0;
 
       while (currentLength < fullText.length) {
         currentLength = Math.min(fullText.length, currentLength + charsPerStep);
         const currentText = fullText.slice(0, currentLength);
-
         await new Promise(resolve => setTimeout(resolve, delayMs));
-
         setMessages(prev => {
           const updated = [...prev];
           updated[updated.length - 1] = {
@@ -355,15 +347,19 @@ const Chat = () => {
         });
       }
 
-      // Auto-rename first message if still default
+      // Auto-rename session
       if (currentSession.title === 'Nova conversa') {
         const autoTitle = messageInput.slice(0, 50);
         await fetch(`${BACKEND}/api/chat/sessions/${currentSession.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ title: autoTitle }),
         });
         setSessions(prev => prev.map(s => s.id === currentSession.id ? { ...s, title: autoTitle } : s));
+        setActiveSession(prev => ({ ...prev, title: autoTitle }));
       }
     } catch (err) {
       console.error('Failed to send message:', err);
@@ -409,19 +405,79 @@ const Chat = () => {
             return;
           }
           setSelectedFile(file);
-          e.preventDefault(); // Evita colar dados binários ou lixo no textarea
+          e.preventDefault();
           break;
         }
       }
     }
   };
 
+  const toggleSpeechRecognition = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Seu navegador não suporta reconhecimento de voz.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Erro no reconhecimento de voz:', event.error);
+      setIsListening(false);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(prev => prev ? prev + ' ' + transcript : transcript);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const hasSensitiveData = useMemo(() => {
+    if (!input) return false;
+    const dlp = localStorage.getItem('dlp_level') || 'rigoroso';
+    if (dlp === 'desativado') return false;
+    
+    const cpfFormatted  = /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/;
+    const cpfRaw        = /\b\d{11}\b/;
+    const cnpjFormatted = /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/;
+    const cnpjRaw       = /\b\d{14}\b/;
+    return (
+      cpfFormatted.test(input) ||
+      cpfRaw.test(input)       ||
+      cnpjFormatted.test(input)||
+      cnpjRaw.test(input)
+    );
+  }, [input]);
+
+  // Exclude team chats from this screen completely
+  const personalSessions = useMemo(() => sessions.filter(s => !s.team_id), [sessions]);
+
   return (
     <div className="chat-page">
-      {/* Sidebar de sessões */}
-      <div className="chat-sidebar">
+      {/* Sidebar conversas privadas */}
+      <div className="chat-sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div className="chat-sidebar__header">
-          <h2>Conversas</h2>
+          <h2>Conversas Privadas</h2>
           <button className="chat-new-btn" onClick={createNewSession} title="Nova conversa">
             <Plus size={18} />
           </button>
@@ -432,16 +488,13 @@ const Chat = () => {
             <div className="chat-sidebar__loading">
               <Loader2 size={20} className="spin" />
             </div>
-          ) : sessions.length === 0 ? (
-            <div className="chat-sidebar__empty">
-              <MessageSquarePlus size={32} />
-              <p>Nenhuma conversa ainda</p>
-              <button className="btn btn-primary" onClick={createNewSession} style={{ marginTop: 12 }}>
-                Iniciar conversa
-              </button>
+          ) : personalSessions.length === 0 ? (
+            <div className="chat-sidebar__empty" style={{ padding: '20px 10px' }}>
+              <MessageSquarePlus size={24} style={{ color: 'var(--text-muted)' }} />
+              <p style={{ fontSize: '0.8rem', marginTop: '6px' }}>Nenhuma conversa ainda</p>
             </div>
           ) : (
-            sessions.map(session => (
+            personalSessions.map(session => (
               <div
                 key={session.id}
                 className={`chat-session-item ${activeSession?.id === session.id ? 'active' : ''}`}
@@ -477,9 +530,9 @@ const Chat = () => {
         </div>
       </div>
 
-      {/* Área principal do chat */}
+      {/* Main Chat Area */}
       <div className="chat-main">
-        {/* Header da conversa / Compartilhamento */}
+        {/* Header */}
         {(activeSession || isSharedPreview) && (
           <div className="chat-main-header" style={{
             display: 'flex',
@@ -494,6 +547,7 @@ const Chat = () => {
               <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                 {isSharedPreview ? `[Compartilhada] ${sharedSessionInfo?.title || ''}` : activeSession.title}
               </h2>
+              
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                 {isSharedPreview ? (
                   <>
@@ -502,12 +556,6 @@ const Chat = () => {
                     <span>Compartilhada por: <strong>{sharedSessionInfo?.creator_name || 'Colaborador Voll'}</strong></span>
                     <span>•</span>
                     <span>{sharedSessionInfo?.message_count || 0} mensagens</span>
-                    {sharedSessionInfo?.file_count > 0 && (
-                      <>
-                        <span>•</span>
-                        <span>📎 {sharedSessionInfo.file_count} {sharedSessionInfo.file_count === 1 ? 'anexo' : 'anexos'}</span>
-                      </>
-                    )}
                   </>
                 ) : (
                   <span>Conversa ativa</span>
@@ -515,26 +563,28 @@ const Chat = () => {
               </div>
             </div>
 
-            {isSharedPreview ? (
-              <button 
-                className="btn btn-primary" 
-                onClick={cloneSharedSession} 
-                disabled={loading}
-                style={{ gap: '6px', fontSize: '0.8rem', padding: '6px 14px' }}
-              >
-                <Plus size={14} />
-                <span>Continuar esta Conversa</span>
-              </button>
-            ) : (
-              <button 
-                className="btn btn-outline" 
-                onClick={shareSession} 
-                style={{ gap: '6px', fontSize: '0.8rem', padding: '6px 12px', borderColor: shareCopied ? 'var(--border-focus)' : 'var(--border)' }}
-              >
-                <Share2 size={14} />
-                <span>{shareCopied ? 'Link Copiado!' : 'Compartilhar'}</span>
-              </button>
-            )}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {isSharedPreview ? (
+                <button 
+                  className="btn btn-primary" 
+                  onClick={cloneSharedSession} 
+                  disabled={loading}
+                  style={{ gap: '6px', fontSize: '0.8rem', padding: '6px 14px' }}
+                >
+                  <Plus size={14} />
+                  <span>Continuar esta Conversa</span>
+                </button>
+              ) : (
+                <button 
+                  className="btn btn-outline" 
+                  onClick={shareSession} 
+                  style={{ gap: '6px', fontSize: '0.8rem', padding: '6px 12px', borderColor: shareCopied ? 'var(--border-focus)' : 'var(--border)' }}
+                >
+                  <Share2 size={14} />
+                  <span>{shareCopied ? 'Link Copiado!' : 'Compartilhar'}</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -550,7 +600,7 @@ const Chat = () => {
                 'Crie um fluxo de chatbot para suporte técnico via WhatsApp',
                 'Gere uma resposta profissional para cliente insatisfeito',
                 'Sugira uma automação para triagem de tickets no Zendesk',
-                'Documente uma integração via webhook com a API da Voll',
+                'Documente uma integration via webhook com a API da Voll',
               ].map((s, i) => (
                 <button
                   key={i}
@@ -565,7 +615,7 @@ const Chat = () => {
         ) : (
           <div className="chat-messages">
             {messages.map((msg, index) => (
-              <ChatMessage key={msg.id || msg.created_at || `msg-${index}`} message={msg} />
+              <ChatMessage key={msg.id || msg.created_at || `msg-${index}`} message={msg} onEdit={handleEditMessage} />
             ))}
             {loading && (
               <div className="chat-message chat-message--ai">
@@ -585,7 +635,7 @@ const Chat = () => {
           </div>
         )}
 
-        {/* Input area */}
+        {/* Input Area */}
         {isSharedPreview ? (
           <div style={{
             padding: '24px',
@@ -613,85 +663,82 @@ const Chat = () => {
           </div>
         ) : (
           <div className="chat-input-area">
-          {isListening && (
-            <div className="chat-voice-active-banner">
-              <span className="voice-pulse-dot" />
-              <span>Ouvindo sua voz... Fale agora!</span>
-            </div>
-          )}
-          {selectedFile && (
-            <div className="chat-file-preview">
-              <span className="chat-file-name">📎 {selectedFile.name}</span>
-              <button className="chat-file-remove" onClick={() => setSelectedFile(null)} title="Remover anexo">
-                <X size={14} />
+            {isListening && (
+              <div className="chat-voice-active-banner">
+                <span className="voice-pulse-dot" />
+                <span>Ouvindo sua voz... Fale agora!</span>
+              </div>
+            )}
+            {selectedFile && (
+              <div className="chat-file-preview">
+                <span className="chat-file-name">📎 {selectedFile.name}</span>
+                <button className="chat-file-remove" onClick={() => setSelectedFile(null)} title="Remover anexo">
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+            <form
+              onSubmit={sendMessage}
+              className={`chat-input-form${hasSensitiveData ? ' chat-input-form--warn' : ''}${isListening ? ' chat-input-form--recording' : ''}`}
+            >
+              <button 
+                type="button" 
+                className="chat-attach-btn" 
+                onClick={() => fileInputRef.current?.click()} 
+                title="Anexar arquivo (PDF, Imagem, Texto)"
+                disabled={loading}
+              >
+                <Paperclip size={20} />
               </button>
-            </div>
-          )}
-          <form
-            onSubmit={sendMessage}
-            className={`chat-input-form${hasSensitiveData ? ' chat-input-form--warn' : ''}${isListening ? ' chat-input-form--recording' : ''}`}
-          >
-            <button 
-              type="button" 
-              className="chat-attach-btn" 
-              onClick={() => fileInputRef.current?.click()} 
-              title="Anexar arquivo (PDF, Imagem, Texto)"
-              disabled={loading}
-            >
-              <Paperclip size={20} />
-            </button>
-            <button
-              type="button"
-              className={`chat-voice-btn${isListening ? ' chat-voice-btn--recording' : ''}`}
-              onClick={toggleSpeechRecognition}
-              title={isListening ? "Parar ditar" : "Ditar mensagem (Gravar voz)"}
-              disabled={loading}
-            >
-              {isListening ? <MicOff size={20} /> : <Mic size={20} />}
-            </button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              style={{ display: 'none' }} 
-              onChange={handleFileChange}
-              accept=".pdf,.txt,.csv,.json,.png,.jpg,.jpeg"
-            />
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              placeholder={isListening ? "Ouvindo sua voz... Fale agora!" : "Mensagem para o Voll AI... (Enter para enviar, Shift+Enter para nova linha, Ctrl+V para colar imagem)"}
-              rows={1}
-              disabled={loading}
-              className="chat-input"
-              style={{ paddingLeft: '8px' }}
-            />
-            <button
-              type="submit"
-              className="chat-send-btn"
-              disabled={!input.trim() || loading}
-              title="Enviar"
-            >
-              {loading ? <Loader2 size={20} className="spin" /> : <Send size={20} />}
-            </button>
-          </form>
+              <button
+                type="button"
+                className={`chat-voice-btn${isListening ? ' chat-voice-btn--recording' : ''}`}
+                onClick={toggleSpeechRecognition}
+                title={isListening ? "Parar ditar" : "Ditar mensagem (Gravar voz)"}
+                disabled={loading}
+              >
+                {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                onChange={handleFileChange}
+                accept=".pdf,.txt,.csv,.json,.png,.jpg,.jpeg"
+              />
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                placeholder={isListening ? "Ouvindo sua voz... Fale agora!" : "Mensagem para o Voll AI... (Enter para enviar, Shift+Enter para nova linha, Ctrl+V para colar imagem)"}
+                rows={1}
+                disabled={loading}
+                className="chat-input"
+                style={{ paddingLeft: '8px' }}
+              />
+              <button
+                type="submit"
+                className="chat-send-btn"
+                disabled={!input.trim() || loading}
+                title="Enviar"
+              >
+                {loading ? <Loader2 size={20} className="spin" /> : <Send size={20} />}
+              </button>
+            </form>
 
-          {/* Sensitive-data hint — shown only when CPF/CNPJ detected */}
-          {hasSensitiveData && (
-            <p className="chat-input-warn-hint">
-              <ShieldAlert size={13} />
-              Nota: Lembre-se de não compartilhar dados pessoais de clientes.
-            </p>
-          )}
-
-          {!hasSensitiveData && (
-            <p className="chat-disclaimer">
-              Voll AI pode cometer erros. Dados sensíveis são automaticamente mascarados antes do envio.
-            </p>
-          )}
-        </div>
+            {hasSensitiveData ? (
+              <p className="chat-input-warn-hint">
+                <ShieldAlert size={13} />
+                Nota: Lembre-se de não compartilhar dados pessoais de clientes.
+              </p>
+            ) : (
+              <p className="chat-disclaimer">
+                Voll AI pode cometer erros. Dados sensíveis são automaticamente mascarados antes do envio.
+              </p>
+            )}
+          </div>
         )}
       </div>
     </div>
