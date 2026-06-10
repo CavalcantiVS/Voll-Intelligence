@@ -21,24 +21,35 @@ import { useAuth } from '../contexts/AuthContext';
 ---------------------------------------------------------------- */
 const Sidebar = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'Administrador Geral';
+  const isAdmin = user?.role === 'Administrador Geral' || user?.role === 'Administrador';
+
+  const checkAccess = (path) => {
+    if (!user) return false;
+    if (path === '/') return true;
+    if (path === '/users') return isAdmin;
+    if (!user.allowed_screens) return true;
+    return user.allowed_screens.includes(path);
+  };
 
   const mainItems = [
     { name: 'Dashboard',            path: '/',            icon: <LayoutDashboard size={18} /> },
     { name: 'Assistente Voll',      path: '/chat',        icon: <MessagesSquare  size={18} /> },
-  ];
+  ].filter(item => checkAccess(item.path));
 
   const toolItems = [
     { name: 'Fluxos de Atendimento', path: '/chatbots',    icon: <LayoutTemplate size={18} /> },
     { name: 'Assistente de Redação', path: '/responses',   icon: <Headset        size={18} /> },
     { name: 'Automação Interna',     path: '/automations', icon: <Settings       size={18} /> },
-  ];
+    { name: 'Gerador de Documentos', path: '/docs',        icon: <LayoutTemplate size={18} /> },
+    { name: 'Refinamento de Textos', path: '/refine',      icon: <Settings       size={18} /> },
+    { name: 'Biblioteca de Prompts', path: '/prompts',     icon: <LayoutTemplate size={18} /> },
+  ].filter(item => checkAccess(item.path));
 
   const systemItems = [
     { name: 'Histórico',     path: '/history',  icon: <History  size={18} /> },
     { name: 'Configurações', path: '/settings', icon: <Settings size={18} /> },
     ...(isAdmin ? [{ name: 'Controle de Acesso', path: '/users', icon: <ShieldCheck size={18} /> }] : []),
-  ];
+  ].filter(item => checkAccess(item.path));
 
   const renderGroup = (items) =>
     items.map((item) => (
@@ -115,7 +126,15 @@ const Header = ({ isDarkMode, toggleTheme }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const isAdmin = user?.role === 'Administrador Geral';
+  const isAdmin = user?.role === 'Administrador Geral' || user?.role === 'Administrador';
+
+  const checkAccess = (path) => {
+    if (!user) return false;
+    if (path === '/') return true;
+    if (path === '/users') return isAdmin;
+    if (!user.allowed_screens) return true;
+    return user.allowed_screens.includes(path);
+  };
 
   const tools = useMemo(() => [
     { name: 'Dashboard',            path: '/',            icon: <LayoutDashboard size={14} /> },
@@ -123,10 +142,13 @@ const Header = ({ isDarkMode, toggleTheme }) => {
     { name: 'Fluxos de Atendimento', path: '/chatbots',    icon: <LayoutTemplate size={14} /> },
     { name: 'Assistente de Redação', path: '/responses',   icon: <Headset        size={14} /> },
     { name: 'Automação Interna',     path: '/automations', icon: <Settings       size={14} /> },
+    { name: 'Gerador de Documentos', path: '/docs',        icon: <LayoutTemplate size={14} /> },
+    { name: 'Refinamento de Textos', path: '/refine',      icon: <Settings       size={14} /> },
+    { name: 'Biblioteca de Prompts', path: '/prompts',     icon: <LayoutTemplate size={14} /> },
     { name: 'Histórico',            path: '/history',     icon: <History        size={14} /> },
     { name: 'Configurações',        path: '/settings',    icon: <Settings       size={14} /> },
     ...(isAdmin ? [{ name: 'Controle de Acesso', path: '/users', icon: <ShieldCheck size={14} /> }] : []),
-  ], [isAdmin]);
+  ].filter(item => checkAccess(item.path)), [user]);
 
   const filteredTools = useMemo(() => {
     if (!query) return tools;

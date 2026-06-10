@@ -145,7 +145,7 @@ const Dashboard = () => {
     { title: 'Base de Conhecimento e APIs', desc: 'Documente integrações e endpoints para agilizar a resolução de chamados.', icon: <FileText size={22} />, path: '/docs' },
     { title: 'Revisão e Qualidade de Texto', desc: 'Refine comunicações para garantir clareza e profissionalismo.', icon: <PenTool size={22} />, path: '/refine' },
     { title: 'Padrões de Resposta (Prompts)', desc: 'Gerencie o banco de comandos corporativos para uso padronizado na Voll.', icon: <Code2 size={22} />, path: '/prompts' },
-  ];
+  ].filter(f => !user?.allowed_screens || user.allowed_screens.includes(f.path));
 
   return (
     <div className="dashboard">

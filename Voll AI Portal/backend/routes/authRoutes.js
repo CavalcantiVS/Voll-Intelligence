@@ -25,7 +25,7 @@ router.post('/login', async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      `SELECT id, name, email, role, status, password_hash, avatar, department
+      `SELECT id, name, email, role, status, password_hash, avatar, department, allowed_screens
        FROM users WHERE email = $1`,
       [email.trim().toLowerCase()]
     );
@@ -52,7 +52,7 @@ router.post('/login', async (req, res) => {
     const token = issueVollToken(user);
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, allowed_screens: user.allowed_screens }
     });
 
   } catch (err) {
@@ -107,7 +107,7 @@ router.post('/microsoft', async (req, res) => {
 
     // Find or auto-create the user
     let { rows } = await pool.query(
-      `SELECT id, name, email, role, status, avatar FROM users WHERE email = $1`,
+      `SELECT id, name, email, role, status, avatar, allowed_screens FROM users WHERE email = $1`,
       [email.toLowerCase()]
     );
 
@@ -117,7 +117,7 @@ router.post('/microsoft', async (req, res) => {
       const inserted = await pool.query(
         `INSERT INTO users (name, email, role, department, status)
          VALUES ($1, $2, 'Colaborador', 'Atendimento', 'Ativo')
-         RETURNING id, name, email, role, status, avatar`,
+         RETURNING id, name, email, role, status, avatar, allowed_screens`,
         [name || email.split('@')[0], email.toLowerCase()]
       );
       user = inserted.rows[0];
@@ -133,7 +133,7 @@ router.post('/microsoft', async (req, res) => {
     const token = issueVollToken(user);
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, allowed_screens: user.allowed_screens }
     });
 
   } catch (err) {
@@ -147,7 +147,7 @@ router.post('/microsoft', async (req, res) => {
 router.get('/me', requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, name, email, role, department, status, avatar FROM users WHERE id = $1`,
+      `SELECT id, name, email, role, department, status, avatar, allowed_screens FROM users WHERE id = $1`,
       [req.userId]
     );
 

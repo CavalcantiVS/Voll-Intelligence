@@ -9,7 +9,7 @@ const { requireAdmin } = require('../middleware/authMiddleware');
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, name, email, role, department, status, avatar
+      `SELECT id, name, email, role, department, status, avatar, allowed_screens
        FROM users
        ORDER BY name ASC`
     );
@@ -24,7 +24,7 @@ router.get('/', requireAdmin, async (req, res) => {
 // Creates a new collaborator (admin only)
 router.post('/', requireAdmin, async (req, res) => {
   try {
-    const { name, email, role, department, status, avatar } = req.body;
+    const { name, email, role, department, status, avatar, allowed_screens } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ error: 'Nome e e-mail são obrigatórios' });
@@ -39,9 +39,9 @@ router.post('/', requireAdmin, async (req, res) => {
     const defaultHash = await bcrypt.hash('Mudar@123', 10);
 
     const { rows } = await pool.query(
-      `INSERT INTO users (name, email, role, department, status, avatar, password_hash)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, name, email, role, department, status, avatar`,
+      `INSERT INTO users (name, email, role, department, status, avatar, allowed_screens, password_hash)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, name, email, role, department, status, avatar, allowed_screens`,
       [
         name.trim(),
         email.trim().toLowerCase(),
@@ -49,6 +49,7 @@ router.post('/', requireAdmin, async (req, res) => {
         department || 'Atendimento',
         status || 'Ativo',
         avatar || null,
+        allowed_screens ? JSON.stringify(allowed_screens) : '["/chat", "/chatbots", "/responses", "/automations", "/docs", "/refine", "/prompts", "/history", "/settings"]',
         defaultHash,
       ]
     );
@@ -65,7 +66,7 @@ router.post('/', requireAdmin, async (req, res) => {
 router.put('/:targetId', requireAdmin, async (req, res) => {
   try {
     const { targetId } = req.params;
-    const { role, status, name, email, department, avatar } = req.body;
+    const { role, status, name, email, department, avatar, allowed_screens } = req.body;
 
     // Prevent admin from suspending themselves
     if (targetId === req.adminId && status === 'Suspenso') {
@@ -101,6 +102,10 @@ router.put('/:targetId', requireAdmin, async (req, res) => {
       fields.push(`avatar = $${idx++}`);
       values.push(avatar);
     }
+    if (allowed_screens !== undefined) {
+      fields.push(`allowed_screens = $${idx++}`);
+      values.push(JSON.stringify(allowed_screens));
+    }
 
     if (fields.length === 0) {
       return res.status(400).json({ error: 'Nenhum campo para atualizar' });
@@ -109,7 +114,7 @@ router.put('/:targetId', requireAdmin, async (req, res) => {
     values.push(targetId);
 
     const { rows } = await pool.query(
-      `UPDATE users SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, name, email, role, department, status, avatar`,
+      `UPDATE users SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, name, email, role, department, status, avatar, allowed_screens`,
       values
     );
 

@@ -14,6 +14,18 @@ const ROLES = [
   'Auditor de DLP',
 ];
 
+const ALL_SCREENS = [
+  { path: '/chat', label: 'Assistente Voll (Chat)' },
+  { path: '/chatbots', label: 'Fluxos de Atendimento' },
+  { path: '/responses', label: 'Assistente de Redação' },
+  { path: '/automations', label: 'Automação Interna' },
+  { path: '/docs', label: 'Gerador de Documentos' },
+  { path: '/refine', label: 'Refinamento de Textos' },
+  { path: '/prompts', label: 'Biblioteca de Prompts' },
+  { path: '/history', label: 'Histórico' },
+  { path: '/settings', label: 'Configurações' }
+];
+
 /* ----------------------------------------------------------------
    Toast notification
 ---------------------------------------------------------------- */
@@ -67,7 +79,14 @@ const TableSkeleton = () => (
 ---------------------------------------------------------------- */
 const UserFormModal = ({ onClose, onSubmit, saving, initialData, departments, isEdit }) => {
   const [form, setForm] = useState(
-    initialData || { name: '', email: '', role: 'Colaborador', department: departments[0]?.name || '', avatar: null }
+    initialData || { 
+      name: '', 
+      email: '', 
+      role: 'Colaborador', 
+      department: departments[0]?.name || '', 
+      avatar: null,
+      allowed_screens: ALL_SCREENS.map(s => s.path)
+    }
   );
 
   const handleChange = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -159,6 +178,34 @@ const UserFormModal = ({ onClose, onSubmit, saving, initialData, departments, is
                 <select className="form-control" value={form.role} onChange={handleChange('role')} required>
                   {ROLES.map((r) => (<option key={r} value={r}>{r}</option>))}
                 </select>
+              </div>
+            </div>
+            <div className="form-group" style={{ marginTop: '16px' }}>
+              <label>Telas Permitidas</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
+                {ALL_SCREENS.map((screen) => {
+                  const isChecked = form.allowed_screens ? form.allowed_screens.includes(screen.path) : true;
+                  return (
+                    <label key={screen.path} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={isChecked}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setForm(prev => {
+                            const current = prev.allowed_screens || ALL_SCREENS.map(s => s.path);
+                            if (checked) {
+                              return { ...prev, allowed_screens: [...current, screen.path] };
+                            } else {
+                              return { ...prev, allowed_screens: current.filter(p => p !== screen.path) };
+                            }
+                          });
+                        }}
+                      />
+                      {screen.label}
+                    </label>
+                  );
+                })}
               </div>
             </div>
           </div>

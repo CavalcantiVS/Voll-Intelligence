@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 import Layout             from './components/Layout';
@@ -23,7 +23,24 @@ import './index.css';
 ---------------------------------------------------------------- */
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
-  return user ? children : <Navigate to="/login" replace />;
+  const location = useLocation();
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const path = location.pathname;
+  const isAdmin = user.role === 'Administrador Geral' || user.role === 'Administrador';
+  
+  if (path === '/users' && !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+  
+  if (path !== '/' && path !== '/users' && user.allowed_screens && !user.allowed_screens.includes(path)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
 };
 
 /* ----------------------------------------------------------------

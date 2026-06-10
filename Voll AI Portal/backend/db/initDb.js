@@ -52,7 +52,14 @@ const initDb = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'Ativo';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS allowed_screens JSONB DEFAULT '["/chat", "/chatbots", "/responses", "/automations", "/docs", "/refine", "/prompts", "/history", "/settings"]'::jsonb;
       ALTER TABLE departments ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;
+    `);
+
+    await pool.query(`
+      UPDATE users 
+      SET allowed_screens = '["/chat", "/chatbots", "/responses", "/automations", "/docs", "/refine", "/prompts", "/history", "/settings"]'::jsonb
+      WHERE allowed_screens IS NULL;
     `);
 
     await pool.query(`
@@ -79,32 +86,6 @@ const initDb = async () => {
       WHERE id = '00000000-0000-0000-0000-000000000000' AND role != 'Administrador Geral';
     `);
 
-    // Seed collaborators for demo
-    await pool.query(`
-      INSERT INTO users (id, name, email, role, department, status)
-      SELECT '22222222-2222-2222-2222-222222222222', 'Maria Silva', 'maria.silva@vollsolutions.com.br', 'Administrador', 'TI', 'Ativo'
-      WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = '22222222-2222-2222-2222-222222222222');
-
-      INSERT INTO users (id, name, email, role, department, status)
-      SELECT '33333333-3333-3333-3333-333333333333', 'Carlos Oliveira', 'carlos.oliveira@vollsolutions.com.br', 'Colaborador', 'Atendimento', 'Ativo'
-      WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = '33333333-3333-3333-3333-333333333333');
-
-      INSERT INTO users (id, name, email, role, department, status)
-      SELECT '44444444-4444-4444-4444-444444444444', 'Ana Costa', 'ana.costa@vollsolutions.com.br', 'Auditor de DLP', 'Financeiro', 'Ativo'
-      WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = '44444444-4444-4444-4444-444444444444');
-
-      INSERT INTO users (id, name, email, role, department, status)
-      SELECT '55555555-5555-5555-5555-555555555555', 'Pedro Santos', 'pedro.santos@vollsolutions.com.br', 'Colaborador', 'Comercial', 'Suspenso'
-      WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = '55555555-5555-5555-5555-555555555555');
-
-      INSERT INTO users (id, name, email, role, department, status)
-      SELECT '66666666-6666-6666-6666-666666666666', 'Juliana Mendes', 'juliana.mendes@vollsolutions.com.br', 'Colaborador', 'RH', 'Ativo'
-      WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = '66666666-6666-6666-6666-666666666666');
-
-      INSERT INTO users (id, name, email, role, department, status)
-      SELECT '77777777-7777-7777-7777-777777777777', 'Rafael Lima', 'rafael.lima@vollsolutions.com.br', 'Administrador', 'TI', 'Ativo'
-      WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = '77777777-7777-7777-7777-777777777777');
-    `);
     
   } catch (err) {
     console.error('Error initializing database:', err);
