@@ -1,9 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Database, Shield, Monitor, Trash2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useMsal } from '@azure/msal-react';
 
 const Settings = () => {
   const { user } = useAuth();
+  const { accounts } = useMsal();
+  
+  // Detecta se o login foi via Microsoft SSO
+  const msAccount = accounts?.[0] || null;
+  const isMsUser = !!msAccount;
+  
+  // Avatar: prioriza o do DB (photo uploaded), depois o da Microsoft em memória, depois as iniciais
+  const displayAvatar = user?.avatar || user?.msAvatar || null;
+  const displayName = user?.name || msAccount?.name || '';
+  const displayEmail = user?.email || msAccount?.username || '';
+  const displayRole = user?.role || '';
+
   
   // UI & Form states
   const [theme, setTheme] = useState('light');
@@ -199,23 +212,50 @@ const Settings = () => {
           <div className="form-card">
             <h3>Perfil do Colaborador</h3>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '0.85rem' }}>
-              Informações do usuário logado gerenciadas via Single Sign-On (SSO).
+              {isMsUser
+                ? 'Informações sincronizadas via Microsoft 365 / Entra ID.'
+                : 'Informações do usuário logado no Portal Voll.'}
             </p>
 
-            <div className="form-group">
-              <label>Nome</label>
-              <input type="text" className="form-control" value={user?.name || ''} disabled style={{ cursor: 'not-allowed' }} />
+            {/* Avatar + badge de identidade */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', padding: '16px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--bg-card)', border: '2px solid var(--border)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 700, color: 'var(--voll-red)', flexShrink: 0 }}>
+                {displayAvatar
+                  ? <img src={displayAvatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : displayName.slice(0, 2).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayEmail}</div>
+              </div>
+              {isMsUser && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#0078d4', color: '#fff', fontSize: '0.7rem', fontWeight: 600, padding: '4px 8px', borderRadius: '99px', flexShrink: 0 }}>
+                  <svg width="10" height="10" viewBox="0 0 21 21" fill="none"><rect x="1" y="1" width="9" height="9" fill="#fff" /><rect x="11" y="1" width="9" height="9" fill="#fff" /><rect x="1" y="11" width="9" height="9" fill="#fff" /><rect x="11" y="11" width="9" height="9" fill="#fff" /></svg>
+                  Microsoft SSO
+                </div>
+              )}
             </div>
 
             <div className="form-group">
-              <label>E-mail</label>
-              <input type="email" className="form-control" value={user?.email || ''} disabled style={{ cursor: 'not-allowed' }} />
+              <label>Nome</label>
+              <input type="text" className="form-control" value={displayName} disabled style={{ cursor: 'not-allowed' }} />
+            </div>
+
+            <div className="form-group">
+              <label>E-mail Corporativo</label>
+              <input type="email" className="form-control" value={displayEmail} disabled style={{ cursor: 'not-allowed' }} />
             </div>
 
             <div className="form-group">
               <label>Nível de Acesso</label>
-              <input type="text" className="form-control" value={user?.role || ''} disabled style={{ cursor: 'not-allowed' }} />
+              <input type="text" className="form-control" value={displayRole} disabled style={{ cursor: 'not-allowed' }} />
             </div>
+
+            {isMsUser && (
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+                ✓ Conta gerenciada pelo Microsoft Entra ID da Voll Solutions.
+              </p>
+            )}
           </div>
 
           {/* Danger Zone Card */}

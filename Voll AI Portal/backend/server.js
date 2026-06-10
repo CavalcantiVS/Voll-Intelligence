@@ -9,14 +9,16 @@ const chatRoutes = require('./routes/chatRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const userRoutes = require('./routes/userRoutes');
 const departmentRoutes = require('./routes/departmentRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/chat', chatRoutes);

@@ -2299,6 +2299,90 @@ select.form-control {
   line-height: 1.5;
 }
 
+/* ── Microsoft SSO Button ───────────────────────────── */
+.login-microsoft-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 20px;
+  background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(0, 120, 212, 0.35);
+  letter-spacing: 0.01em;
+}
+
+.login-microsoft-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #106ebe 0%, #0063b1 100%);
+  box-shadow: 0 6px 28px rgba(0, 120, 212, 0.5);
+  transform: translateY(-1px);
+}
+
+.login-microsoft-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-microsoft-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.login-ms-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+/* ── Login Separator ────────────────────────────────── */
+.login-separator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 4px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.login-separator::before,
+.login-separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Traditional Login Toggle ───────────────────────── */
+.login-traditional-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.login-traditional-toggle:hover {
+  background: var(--bg-subtle);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
 /* ============================================================
    SCROLLBAR — subtle
    ============================================================ */

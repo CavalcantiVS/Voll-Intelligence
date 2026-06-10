@@ -51,6 +51,7 @@ const initDb = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS department VARCHAR(100) DEFAULT 'Atendimento';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'Ativo';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
       ALTER TABLE departments ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;
     `);
 

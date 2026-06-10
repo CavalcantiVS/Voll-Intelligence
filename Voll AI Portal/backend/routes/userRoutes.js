@@ -1,31 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db/dbConfig');
-
-// ── Helper: verify the caller is an Administrador Geral ──────────
-const requireAdmin = async (req, res, next) => {
-  try {
-    const userId = req.query.userId || req.body.userId;
-    if (!userId || userId === 'undefined') {
-      return res.status(401).json({ error: 'userId ausente' });
-    }
-
-    const { rows } = await pool.query(
-      `SELECT role FROM users WHERE id = $1`,
-      [userId]
-    );
-
-    if (!rows.length || rows[0].role !== 'Administrador Geral') {
-      return res.status(403).json({ error: 'Acesso restrito a Administrador Geral' });
-    }
-
-    req.adminId = userId;
-    next();
-  } catch (err) {
-    console.error('Admin check failed:', err);
-    res.status(500).json({ error: 'Erro interno ao verificar permissões' });
-  }
-};
+const bcrypt = require('bcryptjs');
+const { requireAdmin } = require('../middleware/authMiddleware');
 
 // GET /api/users?userId=<admin_id>
 // Lists all collaborators (admin only)
@@ -59,9 +36,11 @@ router.post('/', requireAdmin, async (req, res) => {
       return res.status(409).json({ error: 'Já existe um colaborador com este e-mail' });
     }
 
+    const defaultHash = await bcrypt.hash('Mudar@123', 10);
+
     const { rows } = await pool.query(
-      `INSERT INTO users (name, email, role, department, status, avatar)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO users (name, email, role, department, status, avatar, password_hash)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id, name, email, role, department, status, avatar`,
       [
         name.trim(),
@@ -70,6 +49,7 @@ router.post('/', requireAdmin, async (req, res) => {
         department || 'Atendimento',
         status || 'Ativo',
         avatar || null,
+        defaultHash,
       ]
     );
 

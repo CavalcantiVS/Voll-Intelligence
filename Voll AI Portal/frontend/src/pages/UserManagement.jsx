@@ -279,7 +279,7 @@ const ManageDepartmentsModal = ({ onClose, departments, onCreate, onDelete, onRe
    Main component
 ---------------------------------------------------------------- */
 const UserManagement = () => {
-  const { user, updateUser } = useAuth();
+  const { user, token, updateUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -298,8 +298,12 @@ const UserManagement = () => {
   const fetchAll = useCallback(async () => {
     try {
       const [usersRes, deptsRes] = await Promise.all([
-        fetch(`${BACKEND}/api/users?userId=${user?.id}`),
-        fetch(`${BACKEND}/api/departments?userId=${user?.id}`)
+        fetch(`${BACKEND}/api/users?userId=${user?.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${BACKEND}/api/departments?userId=${user?.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
       ]);
 
       if (!usersRes.ok || !deptsRes.ok) throw new Error('Falha ao carregar dados');
@@ -318,7 +322,13 @@ const UserManagement = () => {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const apiCall = async (url, method, payload = null) => {
-    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    const opts = { 
+      method, 
+      headers: { 
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      } 
+    };
     if (payload) opts.body = JSON.stringify({ ...payload, userId: user?.id });
     else if (method !== 'GET') opts.body = JSON.stringify({ userId: user?.id });
 
