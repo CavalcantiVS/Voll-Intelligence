@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert, Paperclip, Mic, MicOff, Share2, Users, Settings, User, CheckCircle2, XCircle, PanelLeftClose, PanelLeftOpen, Cpu, Code, Database, Shield, BarChart2, Globe, Zap, Briefcase } from 'lucide-react';
+import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert, Paperclip, Mic, MicOff, Share2, Users, Settings, User, CheckCircle2, XCircle, PanelLeftClose, PanelLeftOpen, Cpu, Code, Database, Shield, BarChart2, Globe, Zap, Briefcase, LogOut } from 'lucide-react';
 import ChatMessage from '../components/ChatMessage';
 import { useAuth } from '../contexts/AuthContext';
 import { io } from 'socket.io-client';
@@ -97,6 +97,7 @@ const TeamChat = () => {
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamAvatar, setNewTeamAvatar] = useState('');
   const [showManageModal, setShowManageModal] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [manageModalTab, setManageModalTab] = useState('members');
   const [editTeamName, setEditTeamName] = useState('');
   const [editTeamAvatar, setEditTeamAvatar] = useState('');
@@ -361,6 +362,40 @@ const TeamChat = () => {
         setEditTeamAvatar(reader.result);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleLeaveTeam = () => {
+    setShowLeaveModal(true);
+  };
+
+  const confirmLeaveTeam = async () => {
+    if (!activeTeam) return;
+    setLoading(true);
+    
+    try {
+      const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}/members/${user.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Falha ao sair da equipe.');
+      }
+      setTeams(prev => prev.filter(t => t.id !== activeTeam.id));
+      setActiveTeam(null);
+      setMessages([]);
+      setSessions([]);
+      setActiveSession(null);
+      setShowLeaveModal(false);
+      if (socket) {
+        socket.emit('leave_team', activeTeam.id);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -889,13 +924,30 @@ const TeamChat = () => {
                 }} title={activeTeam.nome}>
                   {activeTeam.nome}
                 </h3>
-                {userTeamRole === 'admin' && (
+                {userTeamRole === 'admin' ? (
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button
+                      onClick={handleOpenManageModal}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '4px', display: 'flex', alignItems: 'center' }}
+                      title="Gerenciar Equipe"
+                    >
+                      <Settings size={14} />
+                    </button>
+                    <button
+                      onClick={handleLeaveTeam}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '4px', display: 'flex', alignItems: 'center' }}
+                      title="Sair da Equipe"
+                    >
+                      <LogOut size={14} />
+                    </button>
+                  </div>
+                ) : (
                   <button
-                    onClick={handleOpenManageModal}
+                    onClick={handleLeaveTeam}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '4px', display: 'flex', alignItems: 'center' }}
-                    title="Gerenciar Equipe"
+                    title="Sair da Equipe"
                   >
-                    <Settings size={14} />
+                    <LogOut size={14} />
                   </button>
                 )}
               </div>
@@ -1122,7 +1174,7 @@ const TeamChat = () => {
             </div>
           </div>
 
-          {/* Admin configuration button */}
+          {/* Team actions */}
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {activeTeam && userTeamRole === 'admin' && (
               <button
@@ -1132,6 +1184,17 @@ const TeamChat = () => {
               >
                 <Settings size={14} />
                 <span>Gerenciar Equipe</span>
+              </button>
+            )}
+            {activeTeam && (
+              <button
+                className="btn btn-outline"
+                onClick={handleLeaveTeam}
+                style={{ gap: '6px', fontSize: '0.8rem', padding: '6px 12px', color: 'var(--text-secondary)' }}
+                title="Sair da Equipe"
+              >
+                <LogOut size={14} />
+                <span>Sair da Equipe</span>
               </button>
             )}
           </div>
@@ -1826,6 +1889,54 @@ const TeamChat = () => {
           </div>
         </div>
       )}
+      {/* MODAL: Sair da Equipe */}
+      {showLeaveModal && activeTeam && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px',
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div className="form-card" style={{ width: '100%', maxWidth: '400px', backgroundColor: 'var(--bg-surface)', padding: '24px', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-md)', textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+              <div style={{ backgroundColor: 'var(--voll-red-soft)', padding: '16px', borderRadius: '50%' }}>
+                <LogOut size={32} style={{ color: 'var(--voll-red)' }} />
+              </div>
+            </div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>Sair da Equipe</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px', lineHeight: '1.5' }}>
+              Tem certeza que deseja sair do espaço <strong>{activeTeam.nome}</strong>? Você perderá acesso às conversas compartilhadas e precisará de um novo convite para retornar.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ flex: 1 }}
+                onClick={() => setShowLeaveModal(false)}
+                disabled={loading}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ flex: 1, backgroundColor: 'var(--voll-red)', border: 'none', gap: '6px' }}
+                onClick={confirmLeaveTeam}
+                disabled={loading}
+              >
+                {loading ? <Loader2 size={16} className="spin" /> : <LogOut size={16} />}
+                <span>Sair agora</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
