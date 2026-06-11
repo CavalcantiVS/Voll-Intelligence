@@ -1,13 +1,73 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert, Paperclip, Mic, MicOff, Share2, Users, Settings, User, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert, Paperclip, Mic, MicOff, Share2, Users, Settings, User, CheckCircle2, XCircle, PanelLeftClose, PanelLeftOpen, Cpu, Code, Database, Shield, BarChart2, Globe, Zap, Briefcase } from 'lucide-react';
 import ChatMessage from '../components/ChatMessage';
 import { useAuth } from '../contexts/AuthContext';
 import { io } from 'socket.io-client';
+import TechBackground from '../components/TechBackground';
+
+const PRESET_ICONS = [
+  { name: 'Cpu', label: 'Tecnologia' },
+  { name: 'Code', label: 'Desenvolvimento' },
+  { name: 'Database', label: 'Dados' },
+  { name: 'Shield', label: 'Segurança' },
+  { name: 'BarChart2', label: 'Comercial' },
+  { name: 'Globe', label: 'Global' },
+  { name: 'Zap', label: 'Inovação' },
+  { name: 'Briefcase', label: 'Projetos' }
+];
+
+const getPresetIcon = (name) => {
+  switch (name) {
+    case 'Cpu': return Cpu;
+    case 'Code': return Code;
+    case 'Database': return Database;
+    case 'Shield': return Shield;
+    case 'BarChart2': return BarChart2;
+    case 'Globe': return Globe;
+    case 'Zap': return Zap;
+    case 'Briefcase': return Briefcase;
+    default: return Users;
+  }
+};
+
+const renderTeamIcon = (team) => {
+  if (team.avatar && team.avatar.startsWith('data:image')) {
+    return <img src={team.avatar} alt={team.nome} style={{ width: '100%', height: '100%', borderRadius: 'inherit', objectFit: 'cover' }} />;
+  }
+  if (team.avatar && team.avatar.startsWith('preset:')) {
+    const iconName = team.avatar.split(':')[1];
+    const IconComponent = getPresetIcon(iconName);
+    return <IconComponent size={20} />;
+  }
+  return team.nome.slice(0, 2).toUpperCase();
+};
+
+const renderInvitationIcon = (invite) => {
+  if (invite.team_avatar && invite.team_avatar.startsWith('data:image')) {
+    return <img src={invite.team_avatar} alt={invite.team_name} style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'cover' }} />;
+  }
+  if (invite.team_avatar && invite.team_avatar.startsWith('preset:')) {
+    const iconName = invite.team_avatar.split(':')[1];
+    const IconComponent = getPresetIcon(iconName);
+    return <IconComponent size={14} style={{ color: 'var(--voll-red)' }} />;
+  }
+  return <Users size={14} style={{ color: 'var(--text-muted)' }} />;
+};
 
 const BACKEND = 'http://localhost:3001';
 
 const TeamChat = () => {
   const { user, token } = useAuth();
+  const [isDark, setIsDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark');
+
+  // Sync with theme changes
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
 
   const [invitations, setInvitations] = useState([]);
   const [teams, setTeams] = useState([]);
@@ -21,6 +81,11 @@ const TeamChat = () => {
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [selectedFile, setSelectedFile] = useState(null);
 
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+
+  const [isChatSidebarCollapsed, setIsChatSidebarCollapsed] = useState(false);
+
   // Socket & Presence States
   const [socket, setSocket] = useState(null);
   const [onlineMembers, setOnlineMembers] = useState([]);
@@ -30,7 +95,13 @@ const TeamChat = () => {
   // Modals States
   const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamAvatar, setNewTeamAvatar] = useState('');
   const [showManageModal, setShowManageModal] = useState(false);
+  const [manageModalTab, setManageModalTab] = useState('members');
+  const [editTeamName, setEditTeamName] = useState('');
+  const [editTeamAvatar, setEditTeamAvatar] = useState('');
+  const teamAvatarInputRef = useRef(null);
+  const editTeamAvatarInputRef = useRef(null);
 
   // Search Members States
   const [searchEmail, setSearchEmail] = useState('');
@@ -247,7 +318,7 @@ const TeamChat = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ nome: newTeamName })
+        body: JSON.stringify({ nome: newTeamName, avatar: newTeamAvatar })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -255,6 +326,7 @@ const TeamChat = () => {
       }
       setTeams(prev => [...prev, data]);
       setNewTeamName('');
+      setNewTeamAvatar('');
       setShowCreateTeamModal(false);
       selectTeam(data);
     } catch (err) {
@@ -262,49 +334,235 @@ const TeamChat = () => {
     }
   };
 
-  // Select team and fetch or create its chat session
+  const handleCreateTeamAvatarUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('A imagem deve ter no máximo 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewTeamAvatar(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleEditTeamAvatarUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('A imagem deve ter no máximo 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditTeamAvatar(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleOpenManageModal = () => {
+    if (!activeTeam) return;
+    setEditTeamName(activeTeam.nome);
+    setEditTeamAvatar(activeTeam.avatar || '');
+    setManageModalTab('members');
+    loadTeamMembers(activeTeam.id);
+    setShowManageModal(true);
+  };
+
+  const handleUpdateTeamSettings = async (e) => {
+    e.preventDefault();
+    if (!editTeamName.trim() || !activeTeam) return;
+    try {
+      const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ nome: editTeamName.trim(), avatar: editTeamAvatar })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao atualizar configurações da equipe.');
+      }
+      
+      // Update local state
+      setTeams(prev => prev.map(t => t.id === activeTeam.id ? { ...t, nome: data.nome, avatar: data.avatar } : t));
+      setActiveTeam(prev => ({ ...prev, nome: data.nome, avatar: data.avatar }));
+      alert('Configurações atualizadas com sucesso!');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteTeam = async () => {
+    if (!activeTeam) return;
+    if (!window.confirm(`ATENÇÃO: Tem certeza de que deseja excluir permanentemente a equipe "${activeTeam.nome}" e todas as suas conversas compartilhadas? Esta ação não pode ser desfeita.`)) return;
+    
+    try {
+      const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao excluir equipe.');
+      }
+      
+      alert('Equipe excluída com sucesso!');
+      setShowManageModal(false);
+      
+      // Remove team from list and reset selection
+      const remainingTeams = teams.filter(t => t.id !== activeTeam.id);
+      setTeams(remainingTeams);
+      if (remainingTeams.length > 0) {
+        selectTeam(remainingTeams[0]);
+      } else {
+        setActiveTeam(null);
+        setActiveSession(null);
+        setMessages([]);
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // Load all sessions (team + private) to sync state
+  const loadSessions = async () => {
+    try {
+      const res = await fetch(`${BACKEND}/api/chat/sessions`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setSessions(data);
+      }
+    } catch (err) {
+      console.error('Failed to load sessions:', err);
+    }
+  };
+
+  // Select a specific session (conversation)
+  const selectSession = async (session) => {
+    setActiveSession(session);
+    setMessages([]);
+    try {
+      const res = await fetch(`${BACKEND}/api/chat/sessions/${session.id}/messages`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setMessages(data);
+    } catch (err) {
+      console.error('Failed to load messages:', err);
+    }
+  };
+
+  // Select team and fetch its chat sessions
   const selectTeam = async (team) => {
     setActiveTeam(team);
     setActiveSession(null);
     setMessages([]);
     
     try {
-      // Get all sessions
       const res = await fetch(`${BACKEND}/api/chat/sessions`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const allSessions = await res.json();
+      setSessions(allSessions);
       
-      // Look for a session with matching team_id
-      const teamSession = allSessions.find(s => s.team_id === team.id);
-      if (teamSession) {
-        setActiveSession(teamSession);
-        // Load messages for this session
-        const msgRes = await fetch(`${BACKEND}/api/chat/sessions/${teamSession.id}/messages`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const msgData = await msgRes.json();
-        setMessages(msgData);
+      // Look for any sessions with matching team_id
+      const teamSessions = allSessions.filter(s => s.team_id === team.id);
+      if (teamSessions.length > 0) {
+        // Select the first (most recent) one
+        selectSession(teamSessions[0]);
       } else {
-        // Automatically create a shared session for this team
-        const createRes = await fetch(`${BACKEND}/api/chat/sessions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            title: `Conversa Compartilhada - ${team.nome}`,
-            teamId: team.id
-          })
-        });
-        const newSession = await createRes.json();
-        setActiveSession(newSession);
-        setMessages([]);
+        // Automatically create a default shared session for this team
+        createNewTeamSession(team.id, `Geral - ${team.nome}`);
       }
     } catch (err) {
       console.error('Error selecting team chat session:', err);
     }
+  };
+
+  // Create a new session for a specific team
+  const createNewTeamSession = async (teamId, title = 'Nova conversa') => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${BACKEND}/api/chat/sessions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title,
+          teamId
+        })
+      });
+      if (!res.ok) throw new Error('Falha ao iniciar conversa.');
+      const newSession = await res.json();
+      setSessions(prev => [newSession, ...prev]);
+      selectSession(newSession);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao iniciar conversa de equipe.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete a session
+  const deleteSession = async (e, sessionId) => {
+    e.stopPropagation();
+    if (!window.confirm('Excluir esta conversa compartilhada?')) return;
+    try {
+      await fetch(`${BACKEND}/api/chat/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      if (activeSession?.id === sessionId) {
+        const remaining = sessions.filter(s => s.team_id === activeTeam?.id && s.id !== sessionId);
+        if (remaining.length > 0) {
+          selectSession(remaining[0]);
+        } else {
+          setActiveSession(null);
+          setMessages([]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to delete session:', err);
+    }
+  };
+
+  const startRename = (e, session) => {
+    e.stopPropagation();
+    setEditingId(session.id);
+    setEditTitle(session.title);
+  };
+
+  const saveRename = async (sessionId) => {
+    if (!editTitle.trim()) return;
+    try {
+      await fetch(`${BACKEND}/api/chat/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title: editTitle }),
+      });
+      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, title: editTitle } : s));
+      if (activeSession?.id === sessionId) setActiveSession(prev => ({ ...prev, title: editTitle }));
+    } catch (err) {
+      console.error('Failed to rename session:', err);
+    }
+    setEditingId(null);
   };
 
   // Send message
@@ -339,9 +597,21 @@ const TeamChat = () => {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || `Erro no servidor (${res.status})`);
       }
-      
-      // Team chat responds with 202 Accepted right away.
-      // Message streaming events are fully handled by WebSockets room broadcast.
+
+      // Auto-rename session
+      if (activeSession.title === 'Nova conversa') {
+        const autoTitle = messageInput.slice(0, 50);
+        await fetch(`${BACKEND}/api/chat/sessions/${activeSession.id}`, {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ title: autoTitle }),
+        });
+        setSessions(prev => prev.map(s => s.id === activeSession.id ? { ...s, title: autoTitle } : s));
+        setActiveSession(prev => ({ ...prev, title: autoTitle }));
+      }
     } catch (err) {
       console.error('Failed to send team message:', err);
       alert('Erro ao enviar mensagem: ' + err.message);
@@ -447,147 +717,370 @@ const TeamChat = () => {
     );
   }, [input]);
 
+  const activeTeamSessions = useMemo(() => {
+    if (!activeTeam) return [];
+    return sessions.filter(s => s.team_id === activeTeam.id);
+  }, [sessions, activeTeam]);
+
   const initials = user?.name ? user.name.slice(0, 2).toUpperCase() : 'AD';
 
   return (
     <div className="chat-page">
-      {/* Sidebar: Invitations & Team selection */}
-      <div className="chat-sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        
-        {/* Teams Header */}
-        <div className="chat-sidebar__header">
-          <h2>Meus Espaços</h2>
-          <button className="chat-new-btn" onClick={() => setShowCreateTeamModal(true)} title="Criar Nova Equipe">
+      {/* Page-level Sidebar: Column 1 (workspaces) + Column 2 (channels) */}
+      <div 
+        className="chat-sidebar" 
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'row', 
+          height: '100%', 
+          width: isChatSidebarCollapsed ? '0px' : '264px',
+          minWidth: isChatSidebarCollapsed ? '0px' : '264px',
+          transition: 'width 0.25s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+          overflow: 'hidden',
+          borderRight: isChatSidebarCollapsed ? 'none' : '1px solid var(--border)'
+        }}
+      >
+        <div style={{ width: '264px', display: 'flex', flexDirection: 'row', height: '100%', flexShrink: 0 }}>
+          {/* Column 1: Workspace/Team selector (68px wide) */}
+        <div 
+          style={{
+            width: '68px',
+            minWidth: '68px',
+            backgroundColor: 'var(--bg-page)',
+            borderRight: '1px solid var(--border)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: '12px 0',
+            overflowY: 'auto',
+            flexShrink: 0
+          }}
+          className="team-chat-spaces-column"
+        >
+          {/* Teams List */}
+          {loadingTeams ? (
+            <Loader2 size={16} className="spin" style={{ color: 'var(--text-muted)', margin: '12px 0' }} />
+          ) : (
+            teams.map(team => (
+              <div key={team.id} style={{ position: 'relative', display: 'flex', justifyContent: 'center', width: '100%', marginBottom: '12px', flexShrink: 0 }}>
+                {/* Active indicator bar */}
+                {activeTeam?.id === team.id && (
+                  <div style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: '10px',
+                    width: '4px',
+                    height: '24px',
+                    backgroundColor: 'var(--voll-red)',
+                    borderTopRightRadius: '4px',
+                    borderBottomRightRadius: '4px'
+                  }} />
+                )}
+                <button
+                  onClick={() => selectTeam(team)}
+                  title={team.nome}
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: activeTeam?.id === team.id ? '12px' : '50%',
+                    backgroundColor: activeTeam?.id === team.id ? 'var(--voll-red)' : 'var(--bg-subtle)',
+                    color: activeTeam?.id === team.id ? 'white' : 'var(--text-primary)',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    boxShadow: activeTeam?.id === team.id ? 'var(--shadow-sm)' : 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeTeam?.id !== team.id) {
+                      e.currentTarget.style.borderRadius = '12px';
+                      e.currentTarget.style.backgroundColor = 'var(--voll-red-soft)';
+                      e.currentTarget.style.color = 'var(--voll-red)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeTeam?.id !== team.id) {
+                      e.currentTarget.style.borderRadius = '50%';
+                      e.currentTarget.style.backgroundColor = 'var(--bg-subtle)';
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                    }
+                  }}
+                >
+                  {renderTeamIcon(team)}
+                </button>
+              </div>
+            ))
+          )}
+          
+          {/* Create new team button */}
+          <button
+            onClick={() => setShowCreateTeamModal(true)}
+            title="Criar Novo Espaço de Equipe"
+            style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--bg-surface)',
+              border: '1.5px dashed var(--border)',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+              marginTop: '8px',
+              flexShrink: 0
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderRadius = '12px';
+              e.currentTarget.style.borderColor = 'var(--voll-red)';
+              e.currentTarget.style.color = 'var(--voll-red)';
+              e.currentTarget.style.backgroundColor = 'var(--voll-red-soft)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderRadius = '50%';
+              e.currentTarget.style.borderColor = 'var(--border)';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+              e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+            }}
+          >
             <Plus size={18} />
           </button>
         </div>
 
-        {/* Teams List */}
-        <div className="chat-sidebar__sessions" style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
-          {loadingTeams ? (
-            <div className="chat-sidebar__loading">
-              <Loader2 size={20} className="spin" />
-            </div>
-          ) : teams.length === 0 ? (
-            <div className="chat-sidebar__empty" style={{ padding: '20px 10px' }}>
-              <Users size={24} style={{ color: 'var(--text-muted)' }} />
-              <p style={{ fontSize: '0.8rem', marginTop: '6px' }}>Nenhum espaço ativo</p>
-            </div>
-          ) : (
-            teams.map(team => (
-              <div
-                key={team.id}
-                className={`chat-session-item ${activeTeam?.id === team.id ? 'active' : ''}`}
-                onClick={() => selectTeam(team)}
-                style={{ padding: '12px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden', flex: 1 }}>
-                  <span className="chat-session-item__title" style={{ fontWeight: 600, fontSize: '0.875rem' }}>{team.nome}</span>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                    {team.papel === 'admin' ? 'Administrador' : 'Membro'}
-                  </span>
-                </div>
+        {/* Column 2: Conversations/Channels selector (196px wide) */}
+        <div 
+          style={{
+            width: '196px',
+            minWidth: '196px',
+            backgroundColor: 'var(--bg-surface)',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            overflow: 'hidden',
+            flexShrink: 0
+          }}
+          className="team-chat-conversations-column"
+        >
+          {activeTeam ? (
+            <>
+              {/* Header info */}
+              <div style={{
+                padding: '16px 14px 12px',
+                borderBottom: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+                flexShrink: 0
+              }}>
+                <h3 style={{
+                  fontSize: '0.825rem',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  margin: 0,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }} title={activeTeam.nome}>
+                  {activeTeam.nome}
+                </h3>
+                {userTeamRole === 'admin' && (
+                  <button
+                    onClick={handleOpenManageModal}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '4px', display: 'flex', alignItems: 'center' }}
+                    title="Gerenciar Equipe"
+                  >
+                    <Settings size={14} />
+                  </button>
+                )}
               </div>
-            ))
+
+              {/* Conversations List */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '14px 14px 6px 14px',
+                flexShrink: 0
+              }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Conversas</span>
+                <button
+                  onClick={() => createNewTeamSession(activeTeam.id)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', padding: '2px' }}
+                  title="Nova Conversa"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+
+              <div style={{ flex: 1, overflowY: 'auto', padding: '4px 8px' }}>
+                {activeTeamSessions.length === 0 ? (
+                  <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', padding: '12px', fontStyle: 'italic' }}>Nenhuma conversa</span>
+                ) : (
+                  activeTeamSessions.map(session => (
+                    <div
+                      key={session.id}
+                      className={`chat-session-item ${activeSession?.id === session.id ? 'active' : ''}`}
+                      onClick={() => selectSession(session)}
+                    >
+                      {editingId === session.id ? (
+                        <div className="chat-session-edit" onClick={e => e.stopPropagation()}>
+                          <input
+                            value={editTitle}
+                            onChange={e => setEditTitle(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && saveRename(session.id)}
+                            autoFocus
+                            style={{ fontSize: '0.8rem', padding: '2px 4px' }}
+                          />
+                          <button onClick={() => saveRename(session.id)} style={{ padding: '2px' }}><Check size={12} /></button>
+                          <button onClick={() => setEditingId(null)} style={{ padding: '2px' }}><X size={12} /></button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="chat-session-item__title" style={{ fontSize: '0.8rem' }}># {session.title}</span>
+                          <div className="chat-session-item__actions">
+                            <button onClick={e => startRename(e, session)} title="Renomear">
+                              <Edit2 size={12} />
+                            </button>
+                            <button onClick={e => deleteSession(e, session.id)} title="Excluir">
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          ) : (
+            <div style={{ padding: '20px 14px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+              Selecione um espaço
+            </div>
+          )}
+
+          {/* Invitations Section at bottom of Column 2 */}
+          {invitations.length > 0 && (
+            <div style={{ borderTop: '1px solid var(--border)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0, backgroundColor: 'var(--bg-page)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Users size={12} style={{ color: 'var(--voll-red)' }} />
+                <h3 style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', margin: 0 }}>Convites ({invitations.length})</h3>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '120px', overflowY: 'auto' }}>
+                {invitations.map(invite => (
+                  <div 
+                    key={invite.membership_id}
+                    style={{
+                      padding: '6px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      backgroundColor: 'var(--bg-surface)',
+                      border: '1px solid var(--border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {renderInvitationIcon(invite)}
+                      <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{invite.team_name}</span>
+                    </div>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)' }}>Por: {invite.creator_name || 'Admin'}</span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        onClick={() => handleAcceptInvite(invite)}
+                        className="btn"
+                        style={{
+                          flex: 1,
+                          padding: '2px',
+                          fontSize: '0.65rem',
+                          justifyContent: 'center',
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          border: 'none',
+                        }}
+                      >
+                        Aceitar
+                      </button>
+                      <button
+                        onClick={() => handleRejectInvite(invite)}
+                        className="btn btn-outline"
+                        style={{
+                          flex: 1,
+                          padding: '2px',
+                          fontSize: '0.65rem',
+                          justifyContent: 'center',
+                          color: 'var(--voll-red)',
+                          borderColor: 'rgba(220,38,38,0.2)',
+                        }}
+                      >
+                        Recusar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
-
-        {/* Invitations Section */}
-        {invitations.length > 0 && (
-          <div style={{ borderTop: '1px solid var(--border)', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0, backgroundColor: 'var(--bg-page)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Users size={14} style={{ color: 'var(--voll-red)' }} />
-              <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', margin: 0 }}>Convites Pendentes ({invitations.length})</h3>
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '160px', overflowY: 'auto' }}>
-              {invitations.map(invite => (
-                <div 
-                  key={invite.membership_id}
-                  style={{
-                    padding: '8px 10px',
-                    borderRadius: 'var(--radius-sm)',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px',
-                    boxShadow: 'var(--shadow-xs)',
-                    transition: 'transform 0.15s ease',
-                  }}
-                  className="invite-item-card"
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>{invite.team_name}</span>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Por: {invite.creator_name || 'Admin'}</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => handleAcceptInvite(invite)}
-                      className="btn"
-                      style={{
-                        flex: 1,
-                        padding: '3px 6px',
-                        fontSize: '0.7rem',
-                        justifyContent: 'center',
-                        backgroundColor: '#10b981',
-                        color: 'white',
-                        border: 'none',
-                        transition: 'transform 0.1s ease'
-                      }}
-                      onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-                      onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                    >
-                      <CheckCircle2 size={12} style={{ marginRight: '4px' }} /> Aceitar
-                    </button>
-                    <button
-                      onClick={() => handleRejectInvite(invite)}
-                      className="btn btn-outline"
-                      style={{
-                        flex: 1,
-                        padding: '3px 6px',
-                        fontSize: '0.7rem',
-                        justifyContent: 'center',
-                        color: 'var(--voll-red)',
-                        borderColor: 'rgba(220,38,38,0.2)',
-                        transition: 'transform 0.1s ease'
-                      }}
-                      onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-                      onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                    >
-                      <XCircle size={12} style={{ marginRight: '4px' }} /> Recusar
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+      </div>
       </div>
 
       {/* Main Chat Area */}
-      <div className="chat-main">
-        {activeTeam && activeSession ? (
-          <>
-            {/* Chat Header */}
-            <div className="chat-main-header" style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '14px 28px',
-              borderBottom: '1px solid var(--border)',
-              backgroundColor: 'var(--bg-surface)',
-              flexShrink: 0
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {activeTeam.nome}
+      <div className="chat-main" style={{ position: 'relative' }}>
+        {/* Tech Background Canvas */}
+        <TechBackground isDark={isDark} />
+
+        {/* Chat Header */}
+        <div className="chat-main-header" style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 28px',
+          borderBottom: '1px solid var(--border)',
+          backgroundColor: 'var(--bg-surface)',
+          flexShrink: 0,
+          position: 'relative',
+          zIndex: 2
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              onClick={() => setIsChatSidebarCollapsed(prev => !prev)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '6px',
+                borderRadius: 'var(--radius-sm)',
+                transition: 'background-color 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-subtle)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              title={isChatSidebarCollapsed ? "Mostrar menu do espaço" : "Esconder menu do espaço"}
+              type="button"
+            >
+              {isChatSidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {activeTeam && activeSession ? activeSession.title : 'Espaços de Equipe'}
+                {activeTeam && (
                   <span style={{ fontSize: '0.7rem', backgroundColor: 'var(--voll-red-soft)', color: 'var(--voll-red)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                    Espaço Compartilhado
+                    Espaço: {activeTeam.nome}
                   </span>
-                </h2>
-                
-                {/* Active users avatar stack */}
+                )}
+              </h2>
+            
+              {activeTeam && (
+                /* Active users avatar stack */
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} />
@@ -625,28 +1118,29 @@ const TeamChat = () => {
                     )}
                   </div>
                 </div>
-              </div>
-
-              {/* Admin configuration button */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                {userTeamRole === 'admin' && (
-                  <button
-                    className="btn btn-outline"
-                    onClick={() => {
-                      loadTeamMembers(activeTeam.id);
-                      setShowManageModal(true);
-                    }}
-                    style={{ gap: '6px', fontSize: '0.8rem', padding: '6px 12px' }}
-                  >
-                    <Settings size={14} />
-                    <span>Gerenciar Equipe</span>
-                  </button>
-                )}
-              </div>
+              )}
             </div>
+          </div>
 
+          {/* Admin configuration button */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {activeTeam && userTeamRole === 'admin' && (
+              <button
+                className="btn btn-outline"
+                onClick={handleOpenManageModal}
+                style={{ gap: '6px', fontSize: '0.8rem', padding: '6px 12px' }}
+              >
+                <Settings size={14} />
+                <span>Gerenciar Equipe</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {activeTeam && activeSession ? (
+          <>
             {/* Chat Messages */}
-            <div className="chat-messages">
+            <div className="chat-messages" style={{ position: 'relative', zIndex: 1 }}>
               {messages.map((msg, index) => (
                 <ChatMessage key={msg.id || msg.created_at || `msg-${index}`} message={msg} onEdit={handleEditMessage} />
               ))}
@@ -668,7 +1162,7 @@ const TeamChat = () => {
             </div>
 
             {/* Message Input Area */}
-            <div className="chat-input-area">
+            <div className="chat-input-area" style={{ position: 'relative', zIndex: 2 }}>
               {isListening && (
                 <div className="chat-voice-active-banner">
                   <span className="voice-pulse-dot" />
@@ -746,7 +1240,7 @@ const TeamChat = () => {
             </div>
           </>
         ) : (
-          <div className="chat-welcome">
+          <div className="chat-welcome" style={{ position: 'relative', zIndex: 1 }}>
             <div className="chat-welcome__icon">
               <Users size={48} />
             </div>
@@ -772,7 +1266,7 @@ const TeamChat = () => {
             <h3 style={{ marginBottom: '12px' }}>Criar Nova Equipe</h3>
             <form onSubmit={handleCreateTeam}>
               <div className="form-group" style={{ marginBottom: '16px' }}>
-                <label>Nome da Equipe</label>
+                <label style={{ fontWeight: 600, fontSize: '0.85rem' }}>Nome da Equipe</label>
                 <input 
                   type="text" 
                   className="form-control" 
@@ -783,8 +1277,100 @@ const TeamChat = () => {
                   autoFocus
                 />
               </div>
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setShowCreateTeamModal(false)}>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600 }}>Ícone da Equipe</label>
+                
+                {/* Preview and Upload button */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '12px',
+                    backgroundColor: 'var(--bg-subtle)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--voll-red)',
+                    fontWeight: 700,
+                    overflow: 'hidden',
+                    border: '1.5px solid var(--border)',
+                    flexShrink: 0
+                  }}>
+                    {newTeamAvatar ? (
+                      newTeamAvatar.startsWith('data:image') ? (
+                        <img src={newTeamAvatar} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        React.createElement(getPresetIcon(newTeamAvatar.split(':')[1]), { size: 22 })
+                      )
+                    ) : (
+                      <Users size={22} style={{ color: 'var(--text-muted)' }} />
+                    )}
+                  </div>
+                  
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    style={{ fontSize: '0.75rem', padding: '6px 12px' }}
+                    onClick={() => teamAvatarInputRef.current?.click()}
+                  >
+                    Carregar Imagem
+                  </button>
+                  <input
+                    type="file"
+                    ref={teamAvatarInputRef}
+                    onChange={handleCreateTeamAvatarUpload}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                  />
+                  
+                  {newTeamAvatar && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      style={{ fontSize: '0.72rem', color: 'var(--voll-red)', padding: '4px' }}
+                      onClick={() => setNewTeamAvatar('')}
+                    >
+                      Remover
+                    </button>
+                  )}
+                </div>
+
+                {/* Presets Grid */}
+                <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Ou escolha um preset:</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {PRESET_ICONS.map(preset => {
+                    const PresetComp = getPresetIcon(preset.name);
+                    const isSelected = newTeamAvatar === `preset:${preset.name}`;
+                    return (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => setNewTeamAvatar(`preset:${preset.name}`)}
+                        title={preset.label}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          border: isSelected ? '2px solid var(--voll-red)' : '1px solid var(--border)',
+                          backgroundColor: isSelected ? 'var(--voll-red-soft)' : 'var(--bg-surface)',
+                          color: isSelected ? 'var(--voll-red)' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <PresetComp size={16} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '20px' }}>
+                <button type="button" className="btn btn-outline" onClick={() => { setShowCreateTeamModal(false); setNewTeamAvatar(''); setNewTeamName(''); }}>
                   Cancelar
                 </button>
                 <button type="submit" className="btn btn-primary">
@@ -810,7 +1396,7 @@ const TeamChat = () => {
         }}>
           <div className="form-card" style={{ width: '100%', maxWidth: '550px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: 'var(--bg-surface)', padding: '24px', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-md)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0 }}>Gerenciar Membros</h3>
+              <h3 style={{ margin: 0 }}>Gerenciar Equipe: {activeTeam.nome}</h3>
               <button 
                 type="button" 
                 onClick={() => {
@@ -825,275 +1411,418 @@ const TeamChat = () => {
               </button>
             </div>
 
-            {/* Adicionar Membro */}
-            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', backgroundColor: 'var(--bg-page)', marginBottom: '20px' }}>
-              <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', fontWeight: 600 }}>Convidar Membro por E-mail corporativo</h4>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="email"
-                  className="form-control"
-                  value={searchEmail}
-                  onChange={(e) => setSearchEmail(e.target.value)}
-                  placeholder="colaborador@vollsolutions.com.br"
-                  style={{ flex: 1 }}
-                />
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={async () => {
-                    if (!searchEmail.trim()) return;
-                    setSearchStatus('searching');
-                    setSearchedUser(null);
-                    try {
-                      const res = await fetch(`${BACKEND}/api/teams/users/search?email=${encodeURIComponent(searchEmail.trim())}`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                      });
-                      if (!res.ok) {
-                        setSearchStatus('not_found');
-                        return;
-                      }
-                      const userObj = await res.json();
-                      setSearchedUser(userObj);
-                      setSearchStatus('success');
-                    } catch (err) {
-                      setSearchStatus('error');
-                    }
-                  }}
-                  disabled={searchStatus === 'searching'}
-                >
-                  {searchStatus === 'searching' ? 'Buscando...' : 'Buscar'}
-                </button>
-              </div>
-
-              {searchStatus === 'not_found' && (
-                <p style={{ color: 'var(--voll-red)', fontSize: '0.8rem', marginTop: '8px', margin: '8px 0 0 0' }}>⚠️ Nenhum colaborador encontrado com este e-mail.</p>
-              )}
-              {searchStatus === 'success' && searchedUser && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginTop: '12px',
-                  padding: '10px',
-                  backgroundColor: 'var(--bg-surface)',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--bg-subtle)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 600,
-                      color: 'var(--voll-red)',
-                      overflow: 'hidden'
-                    }}>
-                      {searchedUser.avatar ? (
-                        <img src={searchedUser.avatar} alt={searchedUser.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        searchedUser.name.slice(0, 2).toUpperCase()
-                      )}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{searchedUser.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{searchedUser.email}</div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                    onClick={async () => {
-                      try {
-                        const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}/members`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                          },
-                          body: JSON.stringify({ email: searchedUser.email })
-                        });
-                        const data = await res.json();
-                        if (!res.ok) {
-                          throw new Error(data.error || 'Erro ao adicionar membro.');
-                        }
-                        setTeamMembers(prev => [...prev, data]);
-                        setSearchedUser(null);
-                        setSearchEmail('');
-                        setSearchStatus(null);
-                        alert('Convite enviado com sucesso! O colaborador receberá um alerta para ingressar na equipe.');
-                      } catch (err) {
-                        alert(err.message);
-                      }
-                    }}
-                  >
-                    Convidar
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Lista de Membros */}
-            <h4 style={{ margin: '0 0 8px 0', fontSize: '0.9rem', fontWeight: 600 }}>Membros da Equipe</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
-              {teamMembers.map(member => (
-                <div
-                  key={member.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '8px 12px',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'var(--bg-surface)'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--bg-subtle)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 600,
-                      color: 'var(--voll-red)',
-                      overflow: 'hidden'
-                    }}>
-                      {member.avatar ? (
-                        <img src={member.avatar} alt={member.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        member.name.slice(0, 2).toUpperCase()
-                      )}
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{member.name} {member.id === user?.id ? '(Você)' : ''}</span>
-                        {member.status === 'pendente' && (
-                          <span style={{ fontSize: '0.62rem', backgroundColor: 'var(--bg-subtle)', color: 'var(--text-secondary)', padding: '1px 6px', borderRadius: '4px' }}>
-                            Pendente
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{member.email}</div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {member.id === user?.id ? (
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                        {member.papel === 'admin' ? 'Administrador' : 'Membro'}
-                      </span>
-                    ) : (
-                      <>
-                        <select
-                          value={member.papel}
-                          className="form-control"
-                          style={{ padding: '4px 8px', fontSize: '0.75rem', width: 'auto', height: 'auto' }}
-                          onChange={async (e) => {
-                            const newRole = e.target.value;
-                            try {
-                              const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}/members/${member.id}`, {
-                                method: 'PATCH',
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                  'Authorization': `Bearer ${token}`
-                                },
-                                body: JSON.stringify({ papel: newRole })
-                              });
-                              if (!res.ok) {
-                                const data = await res.json();
-                                throw new Error(data.error || 'Erro ao alterar papel.');
-                              }
-                              setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, papel: newRole } : m));
-                            } catch (err) {
-                              alert(err.message);
-                            }
-                          }}
-                        >
-                          <option value="membro">Membro</option>
-                          <option value="admin">Administrador</option>
-                        </select>
-
-                        <button
-                          type="button"
-                          className="btn btn-outline"
-                          style={{ padding: '6px', color: 'var(--voll-red)', borderColor: 'rgba(220,38,38,0.2)' }}
-                          title="Remover Membro"
-                          onClick={async () => {
-                            if (!window.confirm(`Tem certeza de que deseja remover ${member.name} da equipe?`)) return;
-                            try {
-                              const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}/members/${member.id}`, {
-                                method: 'DELETE',
-                                headers: { Authorization: `Bearer ${token}` }
-                              });
-                              if (!res.ok) {
-                                const data = await res.json();
-                                throw new Error(data.error || 'Erro ao remover membro.');
-                              }
-                              setTeamMembers(prev => prev.filter(m => m.id !== member.id));
-                            } catch (err) {
-                              alert(err.message);
-                            }
-                          }}
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
+            {/* Control Tabs */}
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '20px', gap: '16px' }}>
               <button
                 type="button"
-                className="btn btn-outline"
-                style={{ color: 'var(--voll-red)', borderColor: 'rgba(220, 38, 38, 0.2)' }}
-                onClick={async () => {
-                  if (!window.confirm('Tem certeza de que deseja EXCLUIR permanentemente esta equipe e todas as conversas compartilhadas dela?')) return;
-                  try {
-                    const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}`, {
-                      method: 'DELETE',
-                      headers: { Authorization: `Bearer ${token}` }
-                    });
-                    if (!res.ok) {
-                      const data = await res.json();
-                      throw new Error(data.error || 'Erro ao excluir equipe.');
-                    }
-                    setTeams(prev => prev.filter(t => t.id !== activeTeam.id));
-                    setActiveTeam(null);
-                    setActiveSession(null);
-                    setMessages([]);
-                    setShowManageModal(false);
-                    alert('Equipe excluída com sucesso.');
-                  } catch (err) {
-                    alert(err.message);
-                  }
+                className="btn-tab"
+                onClick={() => setManageModalTab('members')}
+                style={{
+                  padding: '8px 4px 12px',
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: manageModalTab === 'members' ? '2px solid var(--voll-red)' : '2px solid transparent',
+                  color: manageModalTab === 'members' ? 'var(--voll-red)' : 'var(--text-secondary)',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
                 }}
               >
-                Excluir Equipe
+                Membros
               </button>
-              <button 
-                type="button" 
-                className="btn btn-primary" 
-                onClick={() => {
-                  setShowManageModal(false);
-                  setSearchEmail('');
-                  setSearchedUser(null);
-                  setSearchStatus(null);
-                }}
-              >
-                Fechar
-              </button>
+              
+              {userTeamRole === 'admin' && (
+                <button
+                  type="button"
+                  className="btn-tab"
+                  onClick={() => setManageModalTab('settings')}
+                  style={{
+                    padding: '8px 4px 12px',
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: manageModalTab === 'settings' ? '2px solid var(--voll-red)' : '2px solid transparent',
+                    color: manageModalTab === 'settings' ? 'var(--voll-red)' : 'var(--text-secondary)',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  Configurações
+                </button>
+              )}
             </div>
+
+            {/* TAB: Membros */}
+            {manageModalTab === 'members' && (
+              <>
+                {/* Adicionar Membro */}
+                <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', backgroundColor: 'var(--bg-page)', marginBottom: '20px' }}>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', fontWeight: 600 }}>Convidar Membro por E-mail corporativo</h4>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="email"
+                      className="form-control"
+                      value={searchEmail}
+                      onChange={(e) => setSearchEmail(e.target.value)}
+                      placeholder="colaborador@vollsolutions.com.br"
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={async () => {
+                        if (!searchEmail.trim()) return;
+                        setSearchStatus('searching');
+                        setSearchedUser(null);
+                        try {
+                          const res = await fetch(`${BACKEND}/api/teams/users/search?email=${encodeURIComponent(searchEmail.trim())}`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                          if (!res.ok) {
+                            setSearchStatus('not_found');
+                            return;
+                          }
+                          const userObj = await res.json();
+                          setSearchedUser(userObj);
+                          setSearchStatus('success');
+                        } catch (err) {
+                          setSearchStatus('error');
+                        }
+                      }}
+                      disabled={searchStatus === 'searching'}
+                    >
+                      {searchStatus === 'searching' ? 'Buscando...' : 'Buscar'}
+                    </button>
+                  </div>
+
+                  {searchStatus === 'not_found' && (
+                    <p style={{ color: 'var(--voll-red)', fontSize: '0.8rem', marginTop: '8px', margin: '8px 0 0 0' }}>⚠️ Nenhum colaborador encontrado com este e-mail.</p>
+                  )}
+                  {searchStatus === 'success' && searchedUser && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginTop: '12px',
+                      padding: '10px',
+                      backgroundColor: 'var(--bg-surface)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          backgroundColor: 'var(--bg-subtle)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 600,
+                          color: 'var(--voll-red)',
+                          overflow: 'hidden'
+                        }}>
+                          {searchedUser.avatar ? (
+                            <img src={searchedUser.avatar} alt={searchedUser.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            searchedUser.name.slice(0, 2).toUpperCase()
+                          )}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{searchedUser.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{searchedUser.email}</div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}/members`, {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                              },
+                              body: JSON.stringify({ email: searchedUser.email })
+                            });
+                            const data = await res.json();
+                            if (!res.ok) {
+                              throw new Error(data.error || 'Erro ao adicionar membro.');
+                            }
+                            setTeamMembers(prev => [...prev, data]);
+                            setSearchedUser(null);
+                            setSearchEmail('');
+                            setSearchStatus(null);
+                            alert('Convite enviado com sucesso! O colaborador receberá um alerta para ingressar na equipe.');
+                          } catch (err) {
+                            alert(err.message);
+                          }
+                        }}
+                      >
+                        Convidar
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Lista de Membros */}
+                <h4 style={{ margin: '0 0 8px 0', fontSize: '0.9rem', fontWeight: 600 }}>Membros da Equipe</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto', paddingRight: '4px', marginBottom: '20px' }}>
+                  {teamMembers.map(member => (
+                    <div
+                      key={member.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 12px',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: 'var(--bg-surface)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          backgroundColor: 'var(--bg-subtle)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 600,
+                          color: 'var(--voll-red)',
+                          overflow: 'hidden',
+                          flexShrink: 0
+                        }}>
+                          {member.avatar ? (
+                            <img src={member.avatar} alt={member.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            member.name.slice(0, 2).toUpperCase()
+                          )}
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{member.name} {member.id === user?.id ? '(Você)' : ''}</span>
+                            {member.status === 'pendente' && (
+                              <span style={{ fontSize: '0.62rem', backgroundColor: 'var(--bg-subtle)', color: 'var(--text-secondary)', padding: '1px 6px', borderRadius: '4px' }}>
+                                Pendente
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{member.email}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {member.id === user?.id ? (
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            {member.papel === 'admin' ? 'Administrador' : 'Membro'}
+                          </span>
+                        ) : (
+                          <>
+                            <select
+                              value={member.papel}
+                              className="form-control"
+                              style={{ padding: '4px 8px', fontSize: '0.75rem', width: 'auto', height: 'auto' }}
+                              onChange={async (e) => {
+                                const newRole = e.target.value;
+                                try {
+                                  const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}/members/${member.id}`, {
+                                    method: 'PATCH',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      'Authorization': `Bearer ${token}`
+                                    },
+                                    body: JSON.stringify({ papel: newRole })
+                                  });
+                                  if (!res.ok) {
+                                    const data = await res.json();
+                                    throw new Error(data.error || 'Erro ao alterar papel.');
+                                  }
+                                  setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, papel: newRole } : m));
+                                } catch (err) {
+                                  alert(err.message);
+                                }
+                              }}
+                            >
+                              <option value="membro">Membro</option>
+                              <option value="admin">Administrador</option>
+                            </select>
+
+                            <button
+                              type="button"
+                              className="btn btn-outline"
+                              style={{ padding: '6px', color: 'var(--voll-red)', borderColor: 'rgba(220,38,38,0.2)' }}
+                              title="Remover Membro"
+                              onClick={async () => {
+                                if (!window.confirm(`Tem certeza de que deseja remover ${member.name} da equipe?`)) return;
+                                try {
+                                  const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}/members/${member.id}`, {
+                                    method: 'DELETE',
+                                    headers: { Authorization: `Bearer ${token}` }
+                                  });
+                                  if (!res.ok) {
+                                    const data = await res.json();
+                                    throw new Error(data.error || 'Erro ao remover membro.');
+                                  }
+                                  setTeamMembers(prev => prev.filter(m => m.id !== member.id));
+                                } catch (err) {
+                                  alert(err.message);
+                                }
+                              }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                  <button 
+                    type="button" 
+                    className="btn btn-primary" 
+                    onClick={() => {
+                      setShowManageModal(false);
+                      setSearchEmail('');
+                      setSearchedUser(null);
+                      setSearchStatus(null);
+                    }}
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* TAB: Configurações */}
+            {manageModalTab === 'settings' && userTeamRole === 'admin' && (
+              <form onSubmit={handleUpdateTeamSettings} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="form-group">
+                  <label style={{ fontWeight: 600, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>Nome da Equipe</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editTeamName}
+                    onChange={(e) => setEditTeamName(e.target.value)}
+                    required
+                  />
+                </div>
+                
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600 }}>Ícone da Equipe</label>
+                  
+                  {/* Preview and Upload button */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      backgroundColor: 'var(--bg-subtle)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--voll-red)',
+                      fontWeight: 700,
+                      overflow: 'hidden',
+                      border: '1.5px solid var(--border)',
+                      flexShrink: 0
+                    }}>
+                      {editTeamAvatar ? (
+                        editTeamAvatar.startsWith('data:image') ? (
+                          <img src={editTeamAvatar} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          React.createElement(getPresetIcon(editTeamAvatar.split(':')[1]), { size: 22 })
+                        )
+                      ) : (
+                        <Users size={22} style={{ color: 'var(--text-muted)' }} />
+                      )}
+                    </div>
+                    
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      style={{ fontSize: '0.75rem', padding: '6px 12px' }}
+                      onClick={() => editTeamAvatarInputRef.current?.click()}
+                    >
+                      Alterar Imagem
+                    </button>
+                    <input
+                      type="file"
+                      ref={editTeamAvatarInputRef}
+                      onChange={handleEditTeamAvatarUpload}
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                    />
+                    
+                    {editTeamAvatar && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        style={{ fontSize: '0.72rem', color: 'var(--voll-red)', padding: '4px' }}
+                        onClick={() => setEditTeamAvatar('')}
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Presets Grid */}
+                  <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Ou selecione um preset:</span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {PRESET_ICONS.map(preset => {
+                      const PresetComp = getPresetIcon(preset.name);
+                      const isSelected = editTeamAvatar === `preset:${preset.name}`;
+                      return (
+                        <button
+                          key={preset.name}
+                          type="button"
+                          onClick={() => setEditTeamAvatar(`preset:${preset.name}`)}
+                          title={preset.label}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            border: isSelected ? '2px solid var(--voll-red)' : '1px solid var(--border)',
+                            backgroundColor: isSelected ? 'var(--voll-red-soft)' : 'var(--bg-surface)',
+                            color: isSelected ? 'var(--voll-red)' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <PresetComp size={16} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    style={{ color: 'var(--voll-red)', borderColor: 'rgba(224, 8, 46, 0.2)' }}
+                    onClick={handleDeleteTeam}
+                  >
+                    Excluir Equipe
+                  </button>
+                  
+                  <button type="submit" className="btn btn-primary">
+                    Salvar Alterações
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

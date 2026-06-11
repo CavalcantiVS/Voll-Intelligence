@@ -60,7 +60,8 @@ const initDb = async () => {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         nome VARCHAR(255) NOT NULL,
         criador_id UUID REFERENCES users(id) ON DELETE SET NULL,
-        data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        avatar TEXT
       );
 
       CREATE TABLE IF NOT EXISTS membros_equipe (
@@ -76,6 +77,7 @@ const initDb = async () => {
       ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS team_id UUID REFERENCES equipes(id) ON DELETE CASCADE;
       ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL;
       ALTER TABLE membros_equipe ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pendente' CHECK (status IN ('pendente', 'aceito'));
+      ALTER TABLE equipes ADD COLUMN IF NOT EXISTS avatar TEXT;
     `);
 
     await pool.query(`

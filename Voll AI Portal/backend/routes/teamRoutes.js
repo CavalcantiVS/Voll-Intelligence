@@ -10,7 +10,7 @@ router.use(requireAuth);
 router.get('/', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT e.id, e.nome, e.criador_id, e.data_criacao, m.papel
+      `SELECT e.id, e.nome, e.criador_id, e.data_criacao, e.avatar, m.papel
        FROM equipes e
        JOIN membros_equipe m ON e.id = m.equipe_id
        WHERE m.usuario_id = $1 AND m.status = 'aceito'
@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
 router.get('/invitations', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT m.id as membership_id, m.papel, m.created_at, e.id as team_id, e.nome as team_name, u.name as creator_name
+      `SELECT m.id as membership_id, m.papel, m.created_at, e.id as team_id, e.nome as team_name, e.avatar as team_avatar, u.name as creator_name
        FROM membros_equipe m
        JOIN equipes e ON m.equipe_id = e.id
        LEFT JOIN users u ON e.criador_id = u.id
@@ -88,7 +88,7 @@ router.post('/invitations/:membershipId/reject', async (req, res) => {
 // POST /api/teams — Create a new team and add creator as admin
 router.post('/', async (req, res) => {
   try {
-    const { nome } = req.body;
+    const { nome, avatar } = req.body;
     if (!nome || !nome.trim()) {
       return res.status(400).json({ error: 'O nome da equipe é obrigatório.' });
     }
@@ -99,8 +99,8 @@ router.post('/', async (req, res) => {
       await client.query('BEGIN');
       
       const teamInsert = await client.query(
-        `INSERT INTO equipes (nome, criador_id) VALUES ($1, $2) RETURNING id, nome, criador_id, data_criacao`,
-        [nome.trim(), req.userId]
+        `INSERT INTO equipes (nome, criador_id, avatar) VALUES ($1, $2, $3) RETURNING id, nome, criador_id, avatar, data_criacao`,
+        [nome.trim(), req.userId, avatar || null]
       );
       const newTeam = teamInsert.rows[0];
 
@@ -353,6 +353,56 @@ router.delete('/:id', async (req, res) => {
   } catch (err) {
     console.error('Error deleting team:', err);
     res.status(500).json({ error: 'Erro ao excluir equipe.' });
+  }
+});
+
+// PATCH /api/teams/:id — Update team settings (name, icon/avatar)
+router.patch('/:id', async (req, res) => {
+  try {
+    const teamId = req.params.id;
+    const { nome, avatar } = req.body;
+
+    // Verify req.userId is admin of this team
+    const checkRole = await pool.query(
+      `SELECT papel FROM membros_equipe WHERE equipe_id = $1 AND usuario_id = $2`,
+      [teamId, req.userId]
+    );
+
+    if (checkRole.rows.length === 0 || checkRole.rows[0].papel !== 'admin') {
+      return res.status(403).json({ error: 'Acesso negado. Apenas administradores podem gerenciar as configurações da equipe.' });
+    }
+
+    const fields = [];
+    const values = [];
+    let idx = 1;
+
+    if (nome !== undefined) {
+      if (!nome.trim()) {
+        return res.status(400).json({ error: 'O nome da equipe não pode ser vazio.' });
+      }
+      fields.push(`nome = $${idx++}`);
+      values.push(nome.trim());
+    }
+
+    if (avatar !== undefined) {
+      fields.push(`avatar = $${idx++}`);
+      values.push(avatar);
+    }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ error: 'Nenhum campo para atualizar foi fornecido.' });
+    }
+
+    values.push(teamId);
+    const { rows } = await pool.query(
+      `UPDATE equipes SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, nome, criador_id, avatar, data_criacao`,
+      values
+    );
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Error updating team settings:', err);
+    res.status(500).json({ error: 'Erro ao atualizar configurações da equipe.' });
   }
 });
 

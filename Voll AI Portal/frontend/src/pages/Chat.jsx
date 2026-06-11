@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert, Paperclip, Mic, MicOff, Share2 } from 'lucide-react';
+import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert, Paperclip, Mic, MicOff, Share2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import ChatMessage from '../components/ChatMessage';
 import { useAuth } from '../contexts/AuthContext';
+import TechBackground from '../components/TechBackground';
 
 const BACKEND = 'http://localhost:3001';
 
@@ -10,6 +11,16 @@ const Chat = () => {
   const { user, token } = useAuth();
   const location = useLocation();
   const selectSessionId = location.state?.selectSessionId;
+  const [isDark, setIsDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark');
+
+  // Sync with theme changes
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
 
   const [sessions, setSessions] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
@@ -21,6 +32,7 @@ const Chat = () => {
   const [editTitle, setEditTitle] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
 
+  const [isChatSidebarCollapsed, setIsChatSidebarCollapsed] = useState(false);
   const [isSharedPreview, setIsSharedPreview] = useState(false);
   const [sharedSessionInfo, setSharedSessionInfo] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
@@ -475,77 +487,120 @@ const Chat = () => {
   return (
     <div className="chat-page">
       {/* Sidebar conversas privadas */}
-      <div className="chat-sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <div className="chat-sidebar__header">
-          <h2>Conversas Privadas</h2>
-          <button className="chat-new-btn" onClick={createNewSession} title="Nova conversa">
-            <Plus size={18} />
-          </button>
-        </div>
+      <div 
+        className="chat-sidebar" 
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          height: '100%',
+          width: isChatSidebarCollapsed ? '0px' : '248px',
+          minWidth: isChatSidebarCollapsed ? '0px' : '248px',
+          transition: 'width 0.25s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+          overflow: 'hidden',
+          borderRight: isChatSidebarCollapsed ? 'none' : '1px solid var(--border)'
+        }}
+      >
+        <div style={{ width: '248px', display: 'flex', flexDirection: 'column', height: '100%', flexShrink: 0 }}>
+          <div className="chat-sidebar__header">
+            <h2>Conversas Privadas</h2>
+            <button className="chat-new-btn" onClick={createNewSession} title="Nova conversa">
+              <Plus size={18} />
+            </button>
+          </div>
 
-        <div className="chat-sidebar__sessions">
-          {loadingSessions ? (
-            <div className="chat-sidebar__loading">
-              <Loader2 size={20} className="spin" />
-            </div>
-          ) : personalSessions.length === 0 ? (
-            <div className="chat-sidebar__empty" style={{ padding: '20px 10px' }}>
-              <MessageSquarePlus size={24} style={{ color: 'var(--text-muted)' }} />
-              <p style={{ fontSize: '0.8rem', marginTop: '6px' }}>Nenhuma conversa ainda</p>
-            </div>
-          ) : (
-            personalSessions.map(session => (
-              <div
-                key={session.id}
-                className={`chat-session-item ${activeSession?.id === session.id ? 'active' : ''}`}
-                onClick={() => selectSession(session)}
-              >
-                {editingId === session.id ? (
-                  <div className="chat-session-edit" onClick={e => e.stopPropagation()}>
-                    <input
-                      value={editTitle}
-                      onChange={e => setEditTitle(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && saveRename(session.id)}
-                      autoFocus
-                    />
-                    <button onClick={() => saveRename(session.id)}><Check size={14} /></button>
-                    <button onClick={() => setEditingId(null)}><X size={14} /></button>
-                  </div>
-                ) : (
-                  <>
-                    <span className="chat-session-item__title">{session.title}</span>
-                    <div className="chat-session-item__actions">
-                      <button onClick={e => startRename(e, session)} title="Renomear">
-                        <Edit2 size={14} />
-                      </button>
-                      <button onClick={e => deleteSession(e, session.id)} title="Excluir">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </>
-                )}
+          <div className="chat-sidebar__sessions">
+            {loadingSessions ? (
+              <div className="chat-sidebar__loading">
+                <Loader2 size={20} className="spin" />
               </div>
-            ))
-          )}
+            ) : personalSessions.length === 0 ? (
+              <div className="chat-sidebar__empty" style={{ padding: '20px 10px' }}>
+                <MessageSquarePlus size={24} style={{ color: 'var(--text-muted)' }} />
+                <p style={{ fontSize: '0.8rem', marginTop: '6px' }}>Nenhuma conversa ainda</p>
+              </div>
+            ) : (
+              personalSessions.map(session => (
+                <div
+                  key={session.id}
+                  className={`chat-session-item ${activeSession?.id === session.id ? 'active' : ''}`}
+                  onClick={() => selectSession(session)}
+                >
+                  {editingId === session.id ? (
+                    <div className="chat-session-edit" onClick={e => e.stopPropagation()}>
+                      <input
+                        value={editTitle}
+                        onChange={e => setEditTitle(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && saveRename(session.id)}
+                        autoFocus
+                      />
+                      <button onClick={() => saveRename(session.id)}><Check size={14} /></button>
+                      <button onClick={() => setEditingId(null)}><X size={14} /></button>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="chat-session-item__title">{session.title}</span>
+                      <div className="chat-session-item__actions">
+                        <button onClick={e => startRename(e, session)} title="Renomear">
+                          <Edit2 size={14} />
+                        </button>
+                        <button onClick={e => deleteSession(e, session.id)} title="Excluir">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
       {/* Main Chat Area */}
-      <div className="chat-main">
+      <div className="chat-main" style={{ position: 'relative' }}>
+        {/* Tech Background Canvas */}
+        <TechBackground isDark={isDark} />
+
         {/* Header */}
-        {(activeSession || isSharedPreview) && (
-          <div className="chat-main-header" style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '14px 28px',
-            borderBottom: '1px solid var(--border)',
-            backgroundColor: 'var(--bg-surface)',
-            flexShrink: 0
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div className="chat-main-header" style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 28px',
+          borderBottom: '1px solid var(--border)',
+          backgroundColor: 'var(--bg-surface)',
+          flexShrink: 0,
+          position: 'relative',
+          zIndex: 2
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {!isSharedPreview && (
+              <button
+                onClick={() => setIsChatSidebarCollapsed(prev => !prev)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '6px',
+                  borderRadius: 'var(--radius-sm)',
+                  transition: 'background-color 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-subtle)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                title={isChatSidebarCollapsed ? "Mostrar menu lateral" : "Esconder menu lateral"}
+                type="button"
+              >
+                {isChatSidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+              </button>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                {isSharedPreview ? `[Compartilhada] ${sharedSessionInfo?.title || ''}` : activeSession.title}
+                {isSharedPreview 
+                  ? `[Compartilhada] ${sharedSessionInfo?.title || ''}` 
+                  : (activeSession ? activeSession.title : 'Assistente Voll')}
               </h2>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
@@ -557,39 +612,41 @@ const Chat = () => {
                     <span>•</span>
                     <span>{sharedSessionInfo?.message_count || 0} mensagens</span>
                   </>
-                ) : (
+                ) : activeSession ? (
                   <span>Conversa ativa</span>
+                ) : (
+                  <span>Selecione ou crie uma conversa na barra lateral</span>
                 )}
               </div>
             </div>
-
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {isSharedPreview ? (
-                <button 
-                  className="btn btn-primary" 
-                  onClick={cloneSharedSession} 
-                  disabled={loading}
-                  style={{ gap: '6px', fontSize: '0.8rem', padding: '6px 14px' }}
-                >
-                  <Plus size={14} />
-                  <span>Continuar esta Conversa</span>
-                </button>
-              ) : (
-                <button 
-                  className="btn btn-outline" 
-                  onClick={shareSession} 
-                  style={{ gap: '6px', fontSize: '0.8rem', padding: '6px 12px', borderColor: shareCopied ? 'var(--border-focus)' : 'var(--border)' }}
-                >
-                  <Share2 size={14} />
-                  <span>{shareCopied ? 'Link Copiado!' : 'Compartilhar'}</span>
-                </button>
-              )}
-            </div>
           </div>
-        )}
+
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {isSharedPreview ? (
+              <button 
+                className="btn btn-primary" 
+                onClick={cloneSharedSession} 
+                disabled={loading}
+                style={{ gap: '6px', fontSize: '0.8rem', padding: '6px 14px' }}
+              >
+                <Plus size={14} />
+                <span>Continuar esta Conversa</span>
+              </button>
+            ) : activeSession ? (
+              <button 
+                className="btn btn-outline" 
+                onClick={shareSession} 
+                style={{ gap: '6px', fontSize: '0.8rem', padding: '6px 12px', borderColor: shareCopied ? 'var(--border-focus)' : 'var(--border)' }}
+              >
+                <Share2 size={14} />
+                <span>{shareCopied ? 'Link Copiado!' : 'Compartilhar'}</span>
+              </button>
+            ) : null}
+          </div>
+        </div>
 
         {!activeSession && messages.length === 0 && !isSharedPreview ? (
-          <div className="chat-welcome">
+          <div className="chat-welcome" style={{ position: 'relative', zIndex: 1 }}>
             <div className="chat-welcome__icon">
               <Bot size={48} />
             </div>
@@ -613,7 +670,7 @@ const Chat = () => {
             </div>
           </div>
         ) : (
-          <div className="chat-messages">
+          <div className="chat-messages" style={{ position: 'relative', zIndex: 1 }}>
             {messages.map((msg, index) => (
               <ChatMessage key={msg.id || msg.created_at || `msg-${index}`} message={msg} onEdit={handleEditMessage} />
             ))}
@@ -662,7 +719,7 @@ const Chat = () => {
             </button>
           </div>
         ) : (
-          <div className="chat-input-area">
+          <div className="chat-input-area" style={{ position: 'relative', zIndex: 2 }}>
             {isListening && (
               <div className="chat-voice-active-banner">
                 <span className="voice-pulse-dot" />

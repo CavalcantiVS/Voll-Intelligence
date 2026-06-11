@@ -15,13 +15,15 @@ import {
   ShieldCheck,
   User,
   Users,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 /* ----------------------------------------------------------------
    Sidebar
 ---------------------------------------------------------------- */
-const Sidebar = () => {
+const Sidebar = ({ isCollapsed, toggleSidebar }) => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'Administrador Geral' || user?.role === 'Administrador';
 
@@ -62,22 +64,23 @@ const Sidebar = () => {
         to={item.path}
         end={item.path === '/'}
         className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+        title={isCollapsed ? item.name : undefined}
       >
         {item.icon}
-        <span>{item.name}</span>
+        {!isCollapsed && <span>{item.name}</span>}
       </NavLink>
     ));
 
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       {/* Logo */}
       <div className="sidebar-logo">
         <img src="../images/RemoveFundo Icon.png" alt="Voll" className="logo-img" />
-        <span>Voll Intelligence</span>
+        {!isCollapsed && <span>Voll Intelligence</span>}
       </div>
 
       {/* Navigation */}
-      <nav className="sidebar-nav">
+      <nav className="sidebar-nav" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         {renderGroup(mainItems)}
 
         <div className="nav-section-label">Ferramentas</div>
@@ -85,6 +88,16 @@ const Sidebar = () => {
 
         <div className="nav-section-label">Sistema</div>
         {renderGroup(systemItems)}
+
+        <button 
+          className="sidebar-toggle-btn" 
+          onClick={toggleSidebar}
+          title={isCollapsed ? "Expandir Menu" : "Recolher Menu"}
+          type="button"
+        >
+          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {!isCollapsed && <span>Recolher Menu</span>}
+        </button>
       </nav>
     </div>
   );
@@ -312,6 +325,18 @@ const Layout = () => {
   const location = useLocation();
   const isChatPage = location.pathname === '/chat' || location.pathname === '/teams';
 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(() => {
+    return localStorage.getItem('sidebar_collapsed') === 'true';
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
   React.useEffect(() => {
     const handleThemeChange = () => {
       const saved = localStorage.getItem('theme');
@@ -339,7 +364,64 @@ const Layout = () => {
 
   return (
     <div className="app-container">
-      <Sidebar />
+      <style>{`
+        .sidebar {
+          transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        .sidebar.collapsed {
+          width: 72px !important;
+          min-width: 72px !important;
+        }
+        .sidebar.collapsed .sidebar-logo span {
+          display: none !important;
+        }
+        .sidebar.collapsed .sidebar-logo {
+          justify-content: center !important;
+          padding: 20px 0 16px !important;
+        }
+        .sidebar.collapsed .nav-item {
+          justify-content: center !important;
+          padding: 12px 0 !important;
+          gap: 0 !important;
+        }
+        .sidebar.collapsed .nav-item span {
+          display: none !important;
+        }
+        .sidebar.collapsed .nav-section-label {
+          height: 1px !important;
+          background-color: var(--sidebar-border) !important;
+          margin: 12px 14px !important;
+          padding: 0 !important;
+          font-size: 0 !important;
+          overflow: hidden !important;
+        }
+        .sidebar-toggle-btn {
+          background: none;
+          border: none;
+          border-top: 1px solid var(--sidebar-border);
+          color: var(--text-secondary);
+          padding: 14px 20px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          font-size: 0.825rem;
+          font-weight: 500;
+          transition: background-color 0.15s ease, color 0.15s ease;
+          margin-top: auto;
+        }
+        .sidebar-toggle-btn:hover {
+          background-color: var(--bg-page);
+          color: var(--voll-red);
+        }
+        .sidebar.collapsed .sidebar-toggle-btn {
+          justify-content: center !important;
+          padding: 14px 0 !important;
+          gap: 0 !important;
+        }
+      `}</style>
+      <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />
       <div className="main-content">
         <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
         <div className={`page-content${isChatPage ? ' chat-page-container' : ''}`}>
