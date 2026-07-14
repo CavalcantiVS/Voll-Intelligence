@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 
 /**
- * TechBackground — interactive particle-network canvas that follows the mouse.
- * Designed to sit as an absolute-positioned layer behind chat content.
- * Fully respects reduced-motion preferences and adapts to light/dark themes.
+ * TechBackground — canvas interativo de rede de partículas que segue o mouse.
+ * Projetado para ficar como uma camada de posição absoluta atrás do conteúdo do chat.
+ * Respeita totalmente as preferências de movimento reduzido e se adapta aos temas claro/escuro.
  */
 const TechBackground = ({ isDark = false }) => {
   const canvasRef = useRef(null);
@@ -11,7 +11,7 @@ const TechBackground = ({ isDark = false }) => {
   const mouseRef = useRef({ x: -9999, y: -9999 });
   const particlesRef = useRef([]);
 
-  const PARTICLE_COUNT = 110;
+  const PARTICLE_COUNT = 180;
   const CONNECTION_DIST = 130;
   const MOUSE_REPEL_DIST = 110;
   const MOUSE_ATTRACT_DIST = 220;
@@ -20,14 +20,14 @@ const TechBackground = ({ isDark = false }) => {
   const getThemeColors = useCallback(() => {
     if (isDark) {
       return {
-        particle: 'rgba(224, 8, 46,',   // voll-red
+        particle: 'rgba(224, 8, 46,',   // vermelho voll
         line: 'rgba(224, 8, 46,',
         mouseDot: '#E0082E',
         glow: 'rgba(224, 8, 46, 0.12)',
       };
     }
     return {
-      particle: 'rgba(176, 0, 24,',    // slightly deeper in light
+      particle: 'rgba(176, 0, 24,',    // ligeiramente mais escuro no tema claro
       line: 'rgba(176, 0, 24,',
       mouseDot: '#B00018',
       glow: 'rgba(224, 8, 46, 0.06)',
@@ -87,48 +87,48 @@ const TechBackground = ({ isDark = false }) => {
       const mouse = mouseRef.current;
       const particles = particlesRef.current;
 
-      // Update particle positions
+      // Atualiza as posições das partículas
       for (const p of particles) {
-        // Mouse interaction: attract nearby, repel very close
+        // Interação com o mouse: atrai perto, repele muito perto
         const dx = mouse.x - p.x;
         const dy = mouse.y - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist < MOUSE_REPEL_DIST && dist > 0) {
-          // Soft repulsion
+          // Repulsão suave
           const force = (MOUSE_REPEL_DIST - dist) / MOUSE_REPEL_DIST;
           p.vx -= (dx / dist) * force * 0.25;
           p.vy -= (dy / dist) * force * 0.25;
         } else if (dist < MOUSE_ATTRACT_DIST && dist > MOUSE_REPEL_DIST) {
-          // Gentle attraction
+          // Atração suave
           const force = (MOUSE_ATTRACT_DIST - dist) / MOUSE_ATTRACT_DIST;
           p.vx += (dx / dist) * force * 0.04;
           p.vy += (dy / dist) * force * 0.04;
         }
 
-        // Damping
+        // Amortecimento
         p.vx *= 0.985;
         p.vy *= 0.985;
 
-        // Clamp speed
+        // Limita a velocidade
         const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
         if (spd > SPEED * 3) {
           p.vx = (p.vx / spd) * SPEED * 3;
           p.vy = (p.vy / spd) * SPEED * 3;
         }
 
-        // Move
+        // Movimenta
         p.x += p.vx;
         p.y += p.vy;
 
-        // Wrap edges
+        // Atravessa as bordas
         if (p.x < 0) p.x = w;
         if (p.x > w) p.x = 0;
         if (p.y < 0) p.y = h;
         if (p.y > h) p.y = 0;
       }
 
-      // Draw connections
+      // Desenha as conexões
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const a = particles[i];
@@ -148,7 +148,7 @@ const TechBackground = ({ isDark = false }) => {
         }
       }
 
-      // Draw mouse cursor glow
+      // Desenha o brilho do cursor do mouse
       if (mouse.x > -1000) {
         const grad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, MOUSE_ATTRACT_DIST * 0.6);
         grad.addColorStop(0, colors.glow.replace('0.12', '0.18').replace('0.06', '0.10'));
@@ -160,9 +160,9 @@ const TechBackground = ({ isDark = false }) => {
 
         }
 
-      // Draw particles
+      // Desenha as partículas
       for (const p of particles) {
-        // Proximity to mouse boosts glow
+        // A proximidade com o mouse aumenta o brilho
         const dx = mouse.x - p.x;
         const dy = mouse.y - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -179,7 +179,7 @@ const TechBackground = ({ isDark = false }) => {
       animFrameRef.current = requestAnimationFrame(draw);
     };
 
-    // Respect prefers-reduced-motion
+    // Respeita a preferência de movimento reduzido (prefers-reduced-motion)
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!prefersReducedMotion) {
       animFrameRef.current = requestAnimationFrame(draw);
@@ -203,7 +203,7 @@ const TechBackground = ({ isDark = false }) => {
         height: '100%',
         pointerEvents: 'none',
         zIndex: 0,
-        opacity: 0.75,
+        opacity: 0.35,
       }}
       aria-hidden="true"
     />

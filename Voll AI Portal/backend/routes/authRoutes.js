@@ -71,8 +71,8 @@ router.post('/microsoft', async (req, res) => {
       return res.status(400).json({ error: 'Token Microsoft não fornecido' });
     }
 
-    // Use info from msalAccount (already validated by MSAL on client side)
-    // and optionally cross-validate with JWKS if token present
+    // Usa info do msalAccount (já validado pelo MSAL no lado do cliente)
+    // e opcionalmente faz validação cruzada com JWKS se o token estiver presente
     let email, name, microsoftId;
 
     if (msalAccount) {
@@ -81,7 +81,7 @@ router.post('/microsoft', async (req, res) => {
       microsoftId = msalAccount.localAccountId || msalAccount.homeAccountId;
     }
 
-    // Optional deep validation with JWKS if access token provided
+    // Validação profunda opcional com JWKS se o access token for fornecido
     if (msalToken) {
       try {
         const decoded = await validateMicrosoftToken(msalToken);
@@ -89,7 +89,7 @@ router.post('/microsoft', async (req, res) => {
         name = decoded.name || name;
         microsoftId = decoded.oid || decoded.sub || microsoftId;
       } catch (validationErr) {
-        // If JWKS validation fails due to token type issues, still allow if account info is valid
+        // Se a validação JWKS falhar devido a problemas de tipo de token, ainda permite se as informações da conta forem válidas
         console.warn('JWKS validation skipped (using account info):', validationErr.message);
       }
     }
@@ -98,14 +98,14 @@ router.post('/microsoft', async (req, res) => {
       return res.status(400).json({ error: 'Não foi possível obter o e-mail da conta Microsoft' });
     }
 
-    // Enforce domain restriction
+    // Aplica a restrição de domínio
     const domain = email.split('@')[1] || '';
     const allowedDomain = process.env.AZURE_ALLOWED_DOMAIN || 'vollsolutions.com.br';
     if (domain.toLowerCase() !== allowedDomain.toLowerCase()) {
       return res.status(403).json({ error: `Acesso restrito a contas @${allowedDomain}` });
     }
 
-    // Find or auto-create the user
+    // Encontra ou cria automaticamente o usuário
     let { rows } = await pool.query(
       `SELECT id, name, email, role, status, avatar, allowed_screens FROM users WHERE email = $1`,
       [email.toLowerCase()]
@@ -166,7 +166,7 @@ router.get('/me', requireAuth, async (req, res) => {
   }
 });
 
-// PUT /api/auth/profile — updates the currently logged in user's own profile (name, avatar, password)
+// PUT /api/auth/profile — atualiza o próprio perfil do usuário atualmente logado (name, avatar, password)
 router.put('/profile', requireAuth, async (req, res) => {
   try {
     const { name, avatar, password } = req.body;

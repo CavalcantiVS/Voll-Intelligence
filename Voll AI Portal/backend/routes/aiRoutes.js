@@ -8,16 +8,16 @@ router.post('/generate', async (req, res) => {
   try {
     const { prompt, type, userId, formData, dlpLevel = 'rigoroso', aiModel, aiTemp } = req.body;
     
-    // Sanitize the prompt only if dlpLevel is 'rigoroso'
+    // Sanitiza o prompt apenas se dlpLevel for 'rigoroso'
     const sanitizedPrompt = dlpLevel === 'rigoroso'
       ? sanitizationService.sanitize(prompt)
       : prompt;
     
-    // Call AI Service
+    // Chama o AI Service
     const aiResponse = await aiService.generateResponse(sanitizedPrompt, type, { model: aiModel, temperature: aiTemp });
     
-    // Save to DB
-    // Fallback to Admin User if no userId provided
+    // Salva no DB
+    // Alternativa para Admin User se nenhum userId for fornecido
     const uid = userId || '00000000-0000-0000-0000-000000000000';
     
     await pool.query(

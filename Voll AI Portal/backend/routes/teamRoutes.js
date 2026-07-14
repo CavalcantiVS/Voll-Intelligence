@@ -6,7 +6,7 @@ const { requireAuth } = require('../middleware/authMiddleware');
 // Protege todas as rotas de equipes com autenticação
 router.use(requireAuth);
 
-// GET /api/teams — List all teams the user belongs to (accepted only)
+// GET /api/teams — Lista todas as equipes a que o usuário pertence (apenas aceitas)
 router.get('/', async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/teams/invitations — List pending invitations for the logged-in user
+// GET /api/teams/invitations — Lista convites pendentes para o usuário logado
 router.get('/invitations', async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -43,7 +43,7 @@ router.get('/invitations', async (req, res) => {
   }
 });
 
-// POST /api/teams/invitations/:membershipId/accept — Accept pending team invite
+// POST /api/teams/invitations/:membershipId/accept — Aceita convite de equipe pendente
 router.post('/invitations/:membershipId/accept', async (req, res) => {
   try {
     const { membershipId } = req.params;
@@ -64,7 +64,7 @@ router.post('/invitations/:membershipId/accept', async (req, res) => {
   }
 });
 
-// POST /api/teams/invitations/:membershipId/reject — Reject/Delete pending team invite
+// POST /api/teams/invitations/:membershipId/reject — Rejeita/Exclui convite de equipe pendente
 router.post('/invitations/:membershipId/reject', async (req, res) => {
   try {
     const { membershipId } = req.params;
@@ -85,7 +85,7 @@ router.post('/invitations/:membershipId/reject', async (req, res) => {
   }
 });
 
-// POST /api/teams — Create a new team and add creator as admin
+// POST /api/teams — Cria uma nova equipe e adiciona o criador como admin
 router.post('/', async (req, res) => {
   try {
     const { nome, avatar } = req.body;
@@ -93,7 +93,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'O nome da equipe é obrigatório.' });
     }
 
-    // Start a transaction
+    // Inicia uma transação
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -123,7 +123,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /api/teams/users/search — Search users by exact corporate email
+// GET /api/teams/users/search — Busca usuários pelo email corporativo exato
 router.get('/users/search', async (req, res) => {
   try {
     const { email } = req.query;
@@ -147,12 +147,12 @@ router.get('/users/search', async (req, res) => {
   }
 });
 
-// GET /api/teams/:id/members — List members of a team
+// GET /api/teams/:id/members — Lista membros de uma equipe
 router.get('/:id/members', async (req, res) => {
   try {
     const teamId = req.params.id;
 
-    // Check if the user is a member of the team
+    // Verifica se o usuário é um membro da equipe
     const checkMembership = await pool.query(
       `SELECT papel, status FROM membros_equipe WHERE equipe_id = $1 AND usuario_id = $2`,
       [teamId, req.userId]
@@ -178,7 +178,7 @@ router.get('/:id/members', async (req, res) => {
   }
 });
 
-// POST /api/teams/:id/members — Add member to team (sets status to pending)
+// POST /api/teams/:id/members — Adiciona membro à equipe (define status como pendente)
 router.post('/:id/members', async (req, res) => {
   try {
     const teamId = req.params.id;
@@ -188,7 +188,7 @@ router.post('/:id/members', async (req, res) => {
       return res.status(400).json({ error: 'E-mail é obrigatório.' });
     }
 
-    // Verify req.userId is admin of this team
+    // Verifica se req.userId é admin desta equipe
     const checkRole = await pool.query(
       `SELECT papel FROM membros_equipe WHERE equipe_id = $1 AND usuario_id = $2`,
       [teamId, req.userId]
@@ -198,7 +198,7 @@ router.post('/:id/members', async (req, res) => {
       return res.status(403).json({ error: 'Acesso negado. Apenas administradores da equipe podem gerenciar membros.' });
     }
 
-    // Find user by email
+    // Encontra usuário por email
     const userSearch = await pool.query(
       `SELECT id, name, email, avatar FROM users WHERE email = $1`,
       [email.trim().toLowerCase()]
@@ -210,7 +210,7 @@ router.post('/:id/members', async (req, res) => {
 
     const targetUser = userSearch.rows[0];
 
-    // Check if already member
+    // Verifica se já é membro
     const checkMember = await pool.query(
       `SELECT id, status FROM membros_equipe WHERE equipe_id = $1 AND usuario_id = $2`,
       [teamId, targetUser.id]
@@ -221,7 +221,7 @@ router.post('/:id/members', async (req, res) => {
       return res.status(409).json({ error: `Este colaborador já é um ${statusText} desta equipe.` });
     }
 
-    // Add member as pending
+    // Adiciona membro como pendente
     const insertResult = await pool.query(
       `INSERT INTO membros_equipe (equipe_id, usuario_id, papel, status) VALUES ($1, $2, 'membro', 'pendente') RETURNING id, papel, status, created_at`,
       [teamId, targetUser.id]
@@ -242,7 +242,7 @@ router.post('/:id/members', async (req, res) => {
   }
 });
 
-// PATCH /api/teams/:id/members/:userId — Change user role (admin/membro)
+// PATCH /api/teams/:id/members/:userId — Altera papel do usuário (admin/membro)
 router.patch('/:id/members/:userId', async (req, res) => {
   try {
     const { id: teamId, userId: targetUserId } = req.params;
@@ -252,7 +252,7 @@ router.patch('/:id/members/:userId', async (req, res) => {
       return res.status(400).json({ error: 'Papel inválido. Escolha admin ou membro.' });
     }
 
-    // Verify req.userId is admin of this team
+    // Verifica se req.userId é admin desta equipe
     const checkRole = await pool.query(
       `SELECT papel FROM membros_equipe WHERE equipe_id = $1 AND usuario_id = $2`,
       [teamId, req.userId]
@@ -262,7 +262,7 @@ router.patch('/:id/members/:userId', async (req, res) => {
       return res.status(403).json({ error: 'Acesso negado. Apenas administradores da equipe podem alterar papéis.' });
     }
 
-    // Can't demote yourself
+    // Não é possível rebaixar a si mesmo
     if (targetUserId === req.userId) {
       return res.status(400).json({ error: 'Você não pode alterar seu próprio papel.' });
     }
@@ -283,12 +283,12 @@ router.patch('/:id/members/:userId', async (req, res) => {
   }
 });
 
-// DELETE /api/teams/:id/members/:userId — Remove member from team
+// DELETE /api/teams/:id/members/:userId — Remove membro da equipe
 router.delete('/:id/members/:userId', async (req, res) => {
   try {
     const { id: teamId, userId: targetUserId } = req.params;
 
-    // Verify req.userId is admin OR it is targetUserId leaving the team themselves
+    // Verifica se req.userId é admin OU se é targetUserId saindo da equipe por conta própria
     const checkRole = await pool.query(
       `SELECT papel FROM membros_equipe WHERE equipe_id = $1 AND usuario_id = $2`,
       [teamId, req.userId]
@@ -305,7 +305,7 @@ router.delete('/:id/members/:userId', async (req, res) => {
       return res.status(403).json({ error: 'Acesso negado. Apenas administradores da equipe podem remover membros.' });
     }
 
-    // If admin leaving, verify they are not the only admin
+    // Se admin estiver saindo, verifica se ele não é o único admin
     if (isSelfLeaving && isAdmin) {
       const adminCount = await pool.query(
         `SELECT COUNT(*) FROM membros_equipe WHERE equipe_id = $1 AND papel = 'admin' AND status = 'aceito'`,
@@ -332,12 +332,12 @@ router.delete('/:id/members/:userId', async (req, res) => {
   }
 });
 
-// DELETE /api/teams/:id — Delete team
+// DELETE /api/teams/:id — Exclui equipe
 router.delete('/:id', async (req, res) => {
   try {
     const teamId = req.params.id;
 
-    // Verify req.userId is admin of this team
+    // Verifica se req.userId é admin desta equipe
     const checkRole = await pool.query(
       `SELECT papel FROM membros_equipe WHERE equipe_id = $1 AND usuario_id = $2`,
       [teamId, req.userId]
@@ -356,13 +356,13 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// PATCH /api/teams/:id — Update team settings (name, icon/avatar)
+// PATCH /api/teams/:id — Atualiza configurações da equipe (nome, ícone/avatar)
 router.patch('/:id', async (req, res) => {
   try {
     const teamId = req.params.id;
     const { nome, avatar } = req.body;
 
-    // Verify req.userId is admin of this team
+    // Verifica se req.userId é admin desta equipe
     const checkRole = await pool.query(
       `SELECT papel FROM membros_equipe WHERE equipe_id = $1 AND usuario_id = $2`,
       [teamId, req.userId]

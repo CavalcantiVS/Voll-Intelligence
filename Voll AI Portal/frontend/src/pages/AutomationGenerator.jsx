@@ -87,7 +87,7 @@ const AutomationGenerator = () => {
 
       <div className="generator-grid">
 
-        {/* ── LEFT: Form ── */}
+        {/* ── ESQUERDA: Formulário ── */}
         <div className="form-card">
           <form onSubmit={handleSubmit}>
 
@@ -126,7 +126,7 @@ const AutomationGenerator = () => {
           </form>
         </div>
 
-        {/* ── RIGHT: Output panel ── */}
+        {/* ── DIREITA: Painel de saída ── */}
         <div className="output-panel">
           <div className="output-panel__header">
             <span className="output-panel__title">

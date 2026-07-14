@@ -16,7 +16,7 @@ const upload = multer({
 // Protege todas as rotas de chat com autenticação JWT real
 router.use(requireAuth);
 
-// POST /api/chat/message — send a message, receive AI response (sync or async WebSocket stream)
+// POST /api/chat/message — envia uma mensagem, recebe resposta da IA (sync ou async WebSocket stream)
 router.post('/message', upload.single('file'), async (req, res) => {
   try {
     const { sessionId, content, dlpLevel = 'rigoroso', aiModel, aiTemp } = req.body;
@@ -26,7 +26,7 @@ router.post('/message', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'Message content is required' });
     }
 
-    // Check if session belongs to a team
+    // Verifica se a sessão pertence a uma equipe
     const sessionResult = await pool.query(
       `SELECT team_id FROM chat_sessions WHERE id = $1`,
       [sessionId]
@@ -39,7 +39,7 @@ router.post('/message', upload.single('file'), async (req, res) => {
     const teamId = sessionResult.rows[0].team_id;
     const isTeamSession = !!teamId;
 
-    // Verify team membership
+    // Verifica se é membro da equipe
     if (isTeamSession) {
       const checkMembership = await pool.query(
         `SELECT papel FROM membros_equipe WHERE equipe_id = $1 AND usuario_id = $2`,
@@ -50,7 +50,7 @@ router.post('/message', upload.single('file'), async (req, res) => {
       }
     }
 
-    // Sanitize user message if dlpLevel is 'rigoroso'
+    // Sanitiza a mensagem do usuário se dlpLevel for 'rigoroso'
     const sanitizedContent = dlpLevel === 'rigoroso'
       ? sanitizationService.sanitize(content)
       : content;
@@ -86,7 +86,7 @@ router.post('/message', upload.single('file'), async (req, res) => {
       }
     }
 
-    // Load conversation history for this session BEFORE saving the new message
+    // Carrega o histórico da conversa para esta sessão ANTES de salvar a nova mensagem
     const historyResult = await pool.query(
       `SELECT role, content FROM chat_messages 
        WHERE session_id = $1 
@@ -100,7 +100,7 @@ router.post('/message', upload.single('file'), async (req, res) => {
       content: dlpLevel === 'rigoroso' ? sanitizationService.sanitize(row.content) : row.content
     }));
 
-    // Save original user message to DB (linked with user_id)
+    // Salva a mensagem original do usuário no DB (vinculada ao user_id)
     const userMsgInsert = await pool.query(
       `INSERT INTO chat_messages (session_id, role, content, file_name, file_content, file_mimetype, user_id) 
        VALUES ($1, $2, $3, $4, $5, $6, $7) 
@@ -109,7 +109,7 @@ router.post('/message', upload.single('file'), async (req, res) => {
     );
     const userMsg = userMsgInsert.rows[0];
 
-    // Fetch user details for WebSocket emission
+    // Busca detalhes do usuário para emissão do WebSocket
     const userResult = await pool.query(
       `SELECT name, avatar FROM users WHERE id = $1`,
       [userId]
@@ -124,12 +124,12 @@ router.post('/message', upload.single('file'), async (req, res) => {
     const io = req.app.get('io');
 
     if (isTeamSession) {
-      // Emit the user message to the team room
+      // Emite a mensagem do usuário para a sala da equipe
       if (io) {
         io.to(teamId).emit('message_added', userMsgWithSender);
       }
 
-      // Create an assistant message placeholder in DB
+      // Cria um placeholder da mensagem do assistente no DB
       const assistantPlaceholder = await pool.query(
         `INSERT INTO chat_messages (session_id, role, content) 
          VALUES ($1, $2, $3) 
@@ -138,7 +138,7 @@ router.post('/message', upload.single('file'), async (req, res) => {
       );
       const assistantMsg = assistantPlaceholder.rows[0];
 
-      // Emit the empty assistant placeholder to team room
+      // Emite o placeholder vazio do assistente para a sala da equipe
       if (io) {
         io.to(teamId).emit('message_added', {
           ...assistantMsg,
@@ -147,13 +147,13 @@ router.post('/message', upload.single('file'), async (req, res) => {
         });
       }
 
-      // Trigger asynchronous response streaming in background
+      // Aciona o streaming de resposta assíncrona em segundo plano
       aiService.generateChatResponseStream(history, sanitizedContent, {
         model: aiModel,
         temperature: aiTemp,
         attachment: attachmentParams
       }, (chunk) => {
-        // Emit chunk to room
+        // Emite o chunk para a sala
         if (io) {
           io.to(teamId).emit('message_chunk', {
             messageId: assistantMsg.id,
@@ -161,17 +161,17 @@ router.post('/message', upload.single('file'), async (req, res) => {
           });
         }
       }).then(async (fullContent) => {
-        // Update database with completed content
+        // Atualiza o banco de dados com o conteúdo concluído
         await pool.query(
           `UPDATE chat_messages SET content = $1 WHERE id = $2`,
           [fullContent, assistantMsg.id]
         );
-        // Update session timestamp
+        // Atualiza o timestamp da sessão
         await pool.query(
           `UPDATE chat_sessions SET updated_at = NOW() WHERE id = $1`,
           [sessionId]
         );
-        // Emit finished signal
+        // Emite o sinal de concluído
         if (io) {
           io.to(teamId).emit('message_complete', {
             messageId: assistantMsg.id,
@@ -193,24 +193,24 @@ router.post('/message', upload.single('file'), async (req, res) => {
         }
       });
 
-      // Send 202 Accepted right away (non-blocking)
+      // Envia 202 Accepted imediatamente (non-blocking)
       return res.status(202).json({ success: true, message: 'Processando resposta...', messageId: assistantMsg.id });
     }
 
-    // Normal flow: Private sessions (Sync generation)
+    // Fluxo normal: Sessões privadas (Geração sync)
     const aiResponse = await aiService.generateChatResponse(history, sanitizedContent, { 
       model: aiModel, 
       temperature: aiTemp,
       attachment: attachmentParams
     });
 
-    // Save AI response to DB
+    // Salva a resposta da IA no DB
     await pool.query(
       `INSERT INTO chat_messages (session_id, role, content) VALUES ($1, $2, $3)`,
       [sessionId, 'assistant', aiResponse]
     );
 
-    // Update session updated_at
+    // Atualiza session updated_at
     await pool.query(
       `UPDATE chat_sessions SET updated_at = NOW() WHERE id = $1`,
       [sessionId]
@@ -223,7 +223,7 @@ router.post('/message', upload.single('file'), async (req, res) => {
   }
 });
 
-// POST /api/chat/sessions — create a new session (can be linked to teamId)
+// POST /api/chat/sessions — cria uma nova sessão (pode ser vinculada ao teamId)
 router.post('/sessions', async (req, res) => {
   try {
     const userId = req.userId;
@@ -241,7 +241,7 @@ router.post('/sessions', async (req, res) => {
   }
 });
 
-// GET /api/chat/sessions — list all sessions for user (private + teams they are in)
+// GET /api/chat/sessions — lista todas as sessões do usuário (privadas + equipes nas quais ele está)
 router.get('/sessions', async (req, res) => {
   try {
     const userId = req.userId;
@@ -264,12 +264,12 @@ router.get('/sessions', async (req, res) => {
   }
 });
 
-// GET /api/chat/sessions/:id/messages — get messages of a session
+// GET /api/chat/sessions/:id/messages — obtém mensagens de uma sessão
 router.get('/sessions/:id/messages', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Verify access
+    // Verifica o acesso
     const sessionRes = await pool.query(`SELECT team_id, user_id FROM chat_sessions WHERE id = $1`, [id]);
     if (sessionRes.rows.length === 0) {
       return res.status(404).json({ error: 'Conversa não encontrada.' });
@@ -304,7 +304,7 @@ router.get('/sessions/:id/messages', async (req, res) => {
   }
 });
 
-// PUT /api/chat/messages/:messageId — edit a message content (collaborative editing)
+// PUT /api/chat/messages/:messageId — edita o conteúdo de uma mensagem (edição colaborativa)
 router.put('/messages/:messageId', async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -314,7 +314,7 @@ router.put('/messages/:messageId', async (req, res) => {
       return res.status(400).json({ error: 'O conteúdo da mensagem é obrigatório.' });
     }
 
-    // Find the session and team_id of this message
+    // Encontra a sessão e o team_id desta mensagem
     const msgInfo = await pool.query(
       `SELECT m.session_id, s.team_id 
        FROM chat_messages m
@@ -329,7 +329,7 @@ router.put('/messages/:messageId', async (req, res) => {
 
     const { session_id: sessionId, team_id: teamId } = msgInfo.rows[0];
 
-    // Check permissions
+    // Verifica as permissões
     if (teamId) {
       const checkMembership = await pool.query(
         `SELECT papel FROM membros_equipe WHERE equipe_id = $1 AND usuario_id = $2`,
@@ -339,20 +339,20 @@ router.put('/messages/:messageId', async (req, res) => {
         return res.status(403).json({ error: 'Acesso negado. Você não é membro desta equipe.' });
       }
     } else {
-      // If private, only the session owner can edit
+      // Se for privada, apenas o proprietário da sessão pode editar
       const sessionOwner = await pool.query(`SELECT user_id FROM chat_sessions WHERE id = $1`, [sessionId]);
       if (sessionOwner.rows.length === 0 || sessionOwner.rows[0].user_id !== req.userId) {
         return res.status(403).json({ error: 'Acesso negado.' });
       }
     }
 
-    // Update message
+    // Atualiza a mensagem
     await pool.query(
       `UPDATE chat_messages SET content = $1 WHERE id = $2`,
       [content.trim(), messageId]
     );
 
-    // Emit WebSocket event to sync screens in real-time
+    // Emite evento WebSocket para sincronizar telas em tempo real
     const io = req.app.get('io');
     if (teamId && io) {
       io.to(teamId).emit('message_edited', { messageId, content: content.trim() });
@@ -365,7 +365,7 @@ router.put('/messages/:messageId', async (req, res) => {
   }
 });
 
-// PATCH /api/chat/sessions/:id — rename a session
+// PATCH /api/chat/sessions/:id — renomeia uma sessão
 router.patch('/sessions/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -383,7 +383,7 @@ router.patch('/sessions/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/chat/sessions/:id — delete a session and its messages
+// DELETE /api/chat/sessions/:id — deleta uma sessão e suas mensagens
 router.delete('/sessions/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -398,12 +398,12 @@ router.delete('/sessions/:id', async (req, res) => {
   }
 });
 
-// GET /api/chat/sessions/:id — get single session info with creator details and statistics
+// GET /api/chat/sessions/:id — obtém informações de uma única sessão com detalhes do criador e estatísticas
 router.get('/sessions/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Fetch session details and join user name/avatar
+    // Busca detalhes da sessão e faz join do nome/avatar do usuário
     const sessionResult = await pool.query(
       `SELECT s.id, s.title, s.user_id, s.created_at, s.updated_at, s.team_id, u.name as creator_name, u.avatar as creator_avatar
        FROM chat_sessions s
@@ -418,7 +418,7 @@ router.get('/sessions/:id', async (req, res) => {
 
     const session = sessionResult.rows[0];
 
-    // Fetch stats
+    // Busca estatísticas
     const statsResult = await pool.query(
       `SELECT COUNT(*) as message_count,
               COUNT(CASE WHEN file_name IS NOT NULL THEN 1 END) as file_count
@@ -438,13 +438,13 @@ router.get('/sessions/:id', async (req, res) => {
   }
 });
 
-// POST /api/chat/sessions/:id/clone — clone a shared session
+// POST /api/chat/sessions/:id/clone — clona uma sessão compartilhada
 router.post('/sessions/:id/clone', async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
 
-    // Get original session details
+    // Obtém detalhes da sessão original
     const sessionResult = await pool.query(
       `SELECT title FROM chat_sessions WHERE id = $1`,
       [id]
@@ -457,14 +457,14 @@ router.post('/sessions/:id/clone', async (req, res) => {
     const originalTitle = sessionResult.rows[0].title;
     const newTitle = originalTitle.startsWith('Cópia de ') ? originalTitle : `Cópia de ${originalTitle}`;
 
-    // Create a new session
+    // Cria uma nova sessão
     const newSessionResult = await pool.query(
       `INSERT INTO chat_sessions (user_id, title) VALUES ($1, $2) RETURNING id, title, created_at`,
       [userId, newTitle]
     );
     const newSession = newSessionResult.rows[0];
 
-    // Get all original messages
+    // Obtém todas as mensagens originais
     const messagesResult = await pool.query(
       `SELECT role, content, file_name, file_content, file_mimetype FROM chat_messages 
        WHERE session_id = $1 
@@ -472,7 +472,7 @@ router.post('/sessions/:id/clone', async (req, res) => {
       [id]
     );
 
-    // Insert original messages into the cloned session
+    // Insere as mensagens originais na sessão clonada
     for (const msg of messagesResult.rows) {
       await pool.query(
         `INSERT INTO chat_messages (session_id, role, content, file_name, file_content, file_mimetype, user_id) 

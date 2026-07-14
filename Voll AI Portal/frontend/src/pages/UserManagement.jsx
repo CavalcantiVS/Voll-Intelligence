@@ -27,7 +27,7 @@ const ALL_SCREENS = [
 ];
 
 /* ----------------------------------------------------------------
-   Toast notification
+   Notificação toast
 ---------------------------------------------------------------- */
 const Toast = ({ message, type, onClose }) => {
   useEffect(() => {
@@ -44,7 +44,7 @@ const Toast = ({ message, type, onClose }) => {
 };
 
 /* ----------------------------------------------------------------
-   Loading skeleton
+   Esqueleto de carregamento
 ---------------------------------------------------------------- */
 const TableSkeleton = () => (
   <div className="um-table-wrapper">
@@ -75,7 +75,7 @@ const TableSkeleton = () => (
 );
 
 /* ----------------------------------------------------------------
-   Modals
+   Modais
 ---------------------------------------------------------------- */
 const UserFormModal = ({ onClose, onSubmit, saving, initialData, departments, isEdit }) => {
   const [form, setForm] = useState(
@@ -323,7 +323,7 @@ const ManageDepartmentsModal = ({ onClose, departments, onCreate, onDelete, onRe
 };
 
 /* ----------------------------------------------------------------
-   Main component
+   Componente principal
 ---------------------------------------------------------------- */
 const UserManagement = () => {
   const { user, token, updateUser } = useAuth();
@@ -335,7 +335,7 @@ const UserManagement = () => {
   const [toast, setToast] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
 
-  // Modals state
+  // Estado dos modais
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(null);
@@ -387,7 +387,7 @@ const UserManagement = () => {
     return res.status !== 204 ? await res.json() : null;
   };
 
-  // User Actions
+  // Ações do Usuário
   const handleSaveUser = async (form, id = null) => {
     setModalSaving(true);
     try {
@@ -439,7 +439,7 @@ const UserManagement = () => {
     }
   };
 
-  // Department Actions
+  // Ações de Departamento
   const handleCreateDept = async (name) => {
     const created = await apiCall(`/api/departments`, 'POST', { name });
     setDepartments(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
@@ -458,13 +458,13 @@ const UserManagement = () => {
   };
 
   const handleReorderDept = async (newDepts) => {
-    // Generate new order payloads mapping id -> order_index based on index in array
+    // Gera novos payloads de ordem mapeando id -> order_index baseado no índice no array
     const orderPayload = newDepts.map((d, i) => ({ id: d.id, order_index: i }));
     await apiCall(`/api/departments/reorder`, 'PUT', { order: orderPayload });
     setDepartments(newDepts);
   };
 
-  // Export CSV
+  // Exportar CSV
   const exportCSV = () => {
     if (filtered.length === 0) return;
     const headers = ['Nome', 'E-mail', 'Departamento', 'Nível de Acesso', 'Status'];

@@ -21,7 +21,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 
 /* ----------------------------------------------------------------
-   Sidebar
+   Barra Lateral
 ---------------------------------------------------------------- */
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
   const { user } = useAuth();
@@ -73,13 +73,13 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
 
   return (
     <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
-      {/* Logo */}
+      {/* Logotipo */}
       <div className="sidebar-logo">
         <img src="../images/RemoveFundo Icon.png" alt="Voll" className="logo-img" />
         {!isCollapsed && <span>Voll Intelligence</span>}
       </div>
 
-      {/* Navigation */}
+      {/* Navegação */}
       <nav className="sidebar-nav" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         {renderGroup(mainItems)}
 
@@ -104,7 +104,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
 };
 
 /* ----------------------------------------------------------------
-   Header
+   Cabeçalho
 ---------------------------------------------------------------- */
 const Header = ({ isDarkMode, toggleTheme }) => {
   const { user, logout } = useAuth();

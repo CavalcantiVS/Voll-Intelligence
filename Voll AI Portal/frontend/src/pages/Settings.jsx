@@ -6,14 +6,14 @@ const Settings = () => {
   const navigate = useNavigate();
 
   
-  // UI & Form states
+  // Estados da UI e Formulário
   const [theme, setTheme] = useState('light');
   const [dlpLevel, setDlpLevel] = useState('rigoroso');
   const [aiModel, setAiModel] = useState('gpt-4o');
   const [aiTemp, setAiTemp] = useState(0.7);
   const [saveStatus, setSaveStatus] = useState(null);
 
-  // Load configuration on mount and listen to external changes (like from header)
+  // Carrega a configuração na montagem e escuta mudanças externas (como do cabeçalho)
   useEffect(() => {
     const loadConfig = () => {
       const savedTheme = localStorage.getItem('theme') || 'light';
@@ -33,7 +33,7 @@ const Settings = () => {
     return () => window.removeEventListener('theme-change', loadConfig);
   }, []);
 
-  // Dispatch custom theme change event to toggle interface mode instantly
+  // Dispara evento customizado de mudança de tema para alternar o modo da interface instantaneamente
   const handleThemeToggle = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
@@ -51,7 +51,7 @@ const Settings = () => {
       localStorage.setItem('ai_model', aiModel);
       localStorage.setItem('ai_temp', aiTemp.toString());
       
-      // Dispatch in case it was toggled via selectors
+      // Dispara caso tenha sido alternado via seletores
       window.dispatchEvent(new Event('theme-change'));
       
       setSaveStatus('success');
@@ -79,7 +79,7 @@ const Settings = () => {
         <p>Gerencie as preferências da sua conta e da plataforma Voll Intelligence.</p>
       </div>
 
-      {/* Interactive config cards */}
+      {/* Cartões de configuração interativos */}
       <div className="stats-grid">
         <div className="stat-card" style={{ cursor: 'pointer' }} onClick={handleThemeToggle} title="Clique para alternar o tema">
           <div className="stat-icon primary"><Monitor size={22} /></div>
@@ -106,10 +106,10 @@ const Settings = () => {
         </div>
       </div>
 
-      {/* Forms layout */}
+      {/* Layout de formulários */}
       <div className="generator-grid" style={{ marginTop: '24px' }}>
         
-        {/* Left Side: System Preferences */}
+        {/* Lado Esquerdo: Preferências do Sistema */}
         <div className="form-card">
           <h3>Preferências da Plataforma</h3>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '0.85rem' }}>
@@ -135,7 +135,7 @@ const Settings = () => {
               </select>
             </div>
 
-            {/* DLP Level */}
+            {/* Nível DLP */}
             <div className="form-group">
               <label htmlFor="set-dlp">Filtro de Privacidade (DLP)</label>
               <select id="set-dlp" className="form-control" value={dlpLevel} onChange={(e) => setDlpLevel(e.target.value)}>
@@ -145,7 +145,7 @@ const Settings = () => {
               </select>
             </div>
 
-            {/* AI Model */}
+            {/* Modelo de IA */}
             <div className="form-group">
               <label htmlFor="set-model">Modelo de Linguagem (LLM)</label>
               <select id="set-model" className="form-control" value={aiModel} onChange={(e) => setAiModel(e.target.value)}>
@@ -155,7 +155,7 @@ const Settings = () => {
               </select>
             </div>
 
-            {/* AI Temp Slider */}
+            {/* Slider de Temperatura da IA */}
             <div className="form-group">
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <label htmlFor="set-temp" style={{ marginBottom: 0 }}>Criatividade da Resposta (Temperatura)</label>
@@ -193,10 +193,10 @@ const Settings = () => {
           </form>
         </div>
 
-        {/* Right Side: Profile Card Shortcut & Danger Actions */}
+        {/* Lado Direito: Atalho do Cartão de Perfil e Ações de Perigo */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          {/* Profile Shortcut Card */}
+          {/* Cartão de Atalho do Perfil */}
           <div className="form-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '30px 24px' }}>
             <div style={{
               width: '72px',
@@ -227,7 +227,7 @@ const Settings = () => {
             </button>
           </div>
 
-          {/* Danger Zone Card */}
+          {/* Cartão da Zona de Perigo */}
           <div className="form-card" style={{ border: '1px solid rgba(220, 38, 38, 0.2)', backgroundColor: 'rgba(220, 38, 38, 0.01)' }}>
             <h3 style={{ color: 'var(--voll-red)' }}>Zona de Perigo</h3>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '0.85rem' }}>

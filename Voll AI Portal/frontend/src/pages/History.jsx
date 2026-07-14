@@ -4,12 +4,12 @@ import { History as HistoryIcon, Copy, RotateCcw, Download, Clock, Inbox, Trash2
 import { useAuth } from '../contexts/AuthContext';
 
 /* ----------------------------------------------------------------
-   History card skeleton
-   Mirrors the real history-card layout: header + two-column body
+   Skeleton do card de histórico
+   Reflete o layout real do card de histórico: cabeçalho + corpo em duas colunas
 ---------------------------------------------------------------- */
 const HistoryCardSkeleton = () => (
   <div className="sk-history-card">
-    {/* Header row */}
+    {/* Linha do cabeçalho */}
     <div className="sk-history-card__header">
       <div className="sk-history-card__header-left">
         <div className="sk sk-h-md" style={{ width: 130, borderRadius: 'var(--radius-full)' }} />
@@ -22,14 +22,14 @@ const HistoryCardSkeleton = () => (
       </div>
     </div>
 
-    {/* Body: two panes side-by-side */}
+    {/* Corpo: dois painéis lado a lado */}
     <div className="sk-history-card__body">
-      {/* Left pane */}
+      {/* Painel esquerdo */}
       <div className="sk-history-pane">
         <div className="sk sk-h-xs sk-w-30" style={{ marginBottom: 2 }} />
         <div className="sk sk-h-xxl sk-w-full" style={{ borderRadius: 'var(--radius-md)' }} />
       </div>
-      {/* Right pane */}
+      {/* Painel direito */}
       <div className="sk-history-pane">
         <div className="sk sk-h-xs sk-w-30" style={{ marginBottom: 2 }} />
         <div className="sk sk-h-xxl sk-w-full" style={{ borderRadius: 'var(--radius-md)' }} />
@@ -38,7 +38,7 @@ const HistoryCardSkeleton = () => (
   </div>
 );
 
-/* ── History Page ───────────────────────────────────────────── */
+/* ── Página de Histórico ───────────────────────────────────────────── */
 const History = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -49,7 +49,7 @@ const History = () => {
   const [copiedId, setCopiedId] = useState(null);
   const [expandedIds, setExpandedIds] = useState({});
 
-  // Filtering states
+  // Estados de filtragem
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -150,7 +150,7 @@ const History = () => {
     }
   };
 
-  // Memoized filter and search execution
+  // Execução memoizada de filtro e busca
   const categories = useMemo(() => {
     return [
       { id: 'all', label: 'Todos' },
@@ -181,7 +181,7 @@ const History = () => {
         <p>Acompanhe todos os prompts enviados e respostas geradas.</p>
       </div>
 
-      {/* ── Skeleton while loading ── */}
+      {/* ── Skeleton durante o carregamento ── */}
       {loading && (
         <div className="history-list">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -190,14 +190,14 @@ const History = () => {
         </div>
       )}
 
-      {/* ── Error state ── */}
+      {/* ── Estado de erro ── */}
       {error && !loading && (
         <div style={{ color: 'var(--voll-red)', backgroundColor: 'rgba(224,8,46,0.1)', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', fontSize: '0.85rem' }}>
           {error}
         </div>
       )}
 
-      {/* ── Empty state (Database empty) ── */}
+      {/* ── Estado vazio (Banco de dados vazio) ── */}
       {!loading && !error && history.length === 0 && (
         <div className="history-empty">
           <Inbox size={36} />
@@ -205,7 +205,7 @@ const History = () => {
         </div>
       )}
 
-      {/* ── Search & Filters Bar ── */}
+      {/* ── Barra de Busca e Filtros ── */}
       {!loading && !error && history.length > 0 && (
         <div className="history-filters-container">
           <div className="history-search-wrapper" style={{ position: 'relative' }}>
@@ -226,7 +226,7 @@ const History = () => {
                 ? history.length 
                 : history.filter(h => h.type === cat.id).length;
               
-              // Only show filter buttons for categories that have entries (or the 'all' button)
+              // Mostrar apenas botões de filtro para categorias que possuem registros (ou o botão 'all')
               if (cat.id !== 'all' && count === 0) return null;
               
               return (
@@ -244,7 +244,7 @@ const History = () => {
         </div>
       )}
 
-      {/* ── Empty Search Results State ── */}
+      {/* ── Estado de Resultados de Busca Vazios ── */}
       {!loading && !error && history.length > 0 && filteredHistory.length === 0 && (
         <div className="history-empty" style={{ padding: '60px 20px', border: '1px dashed var(--border)', borderRadius: 'var(--radius-lg)' }}>
           <Filter size={36} style={{ color: 'var(--text-muted)', marginBottom: '12px' }} />
@@ -259,13 +259,13 @@ const History = () => {
         </div>
       )}
 
-      {/* ── History list ── */}
+      {/* ── Lista de histórico ── */}
       {!loading && filteredHistory.length > 0 && (
         <div className="history-list">
           {filteredHistory.map((item) => (
             <div key={item.id} className="history-card">
 
-              {/* Card header */}
+              {/* Cabeçalho do card */}
               <div className="history-card__header">
                 <div className="history-card__meta">
                   <span className={getBadgeClass(item.type)}>{formatType(item.type)}</span>
@@ -311,7 +311,7 @@ const History = () => {
                 </div>
               </div>
 
-              {/* Card body — two columns */}
+              {/* Corpo do card — duas colunas */}
               <div className="history-card__body">
                 <div className="history-pane">
                   <p className="history-pane__label">Prompt Original</p>

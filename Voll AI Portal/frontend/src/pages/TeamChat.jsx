@@ -60,7 +60,7 @@ const TeamChat = () => {
   const { user, token } = useAuth();
   const [isDark, setIsDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark');
 
-  // Sync with theme changes
+  // Sincroniza com as mudanças de tema
   useEffect(() => {
     const observer = new MutationObserver(() => {
       setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
@@ -86,13 +86,13 @@ const TeamChat = () => {
 
   const [isChatSidebarCollapsed, setIsChatSidebarCollapsed] = useState(false);
 
-  // Socket & Presence States
+  // Estados de Socket e Presença
   const [socket, setSocket] = useState(null);
   const [onlineMembers, setOnlineMembers] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [userTeamRole, setUserTeamRole] = useState('membro');
 
-  // Modals States
+  // Estados dos Modais
   const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamAvatar, setNewTeamAvatar] = useState('');
@@ -104,7 +104,7 @@ const TeamChat = () => {
   const teamAvatarInputRef = useRef(null);
   const editTeamAvatarInputRef = useRef(null);
 
-  // Search Members States
+  // Estados de Busca de Membros
   const [searchEmail, setSearchEmail] = useState('');
   const [searchedUser, setSearchedUser] = useState(null);
   const [searchStatus, setSearchStatus] = useState(null);
@@ -115,7 +115,7 @@ const TeamChat = () => {
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Connect to Socket.io on mount
+  // Conecta ao Socket.io na montagem
   useEffect(() => {
     const newSocket = io(BACKEND, {
       transports: ['websocket', 'polling']
@@ -127,7 +127,7 @@ const TeamChat = () => {
     };
   }, []);
 
-  // Fetch initial teams and pending invitations
+  // Busca equipes iniciais e convites pendentes
   useEffect(() => {
     if (token) {
       loadTeams();
@@ -135,11 +135,11 @@ const TeamChat = () => {
     }
   }, [token]);
 
-  // Manage room joining and WebSocket listeners
+  // Gerencia entrada na sala e listeners do WebSocket
   useEffect(() => {
     if (!socket || !activeTeam || !user) return;
 
-    // Join team socket room
+    // Entra na sala de socket da equipe
     socket.emit('join_team', {
       teamId: activeTeam.id,
       user: {
@@ -150,15 +150,15 @@ const TeamChat = () => {
       }
     });
 
-    // Load member list and role
+    // Carrega lista de membros e papel
     loadTeamMembers(activeTeam.id);
 
-    // Listen for presence updates
+    // Escuta atualizações de presença
     socket.on('team_online_members', (members) => {
       setOnlineMembers(members);
     });
 
-    // Listen for newly added messages (user or assistant placeholders)
+    // Escuta novas mensagens adicionadas (usuário ou placeholders do assistente)
     socket.on('message_added', (msg) => {
       setMessages(prev => {
         if (prev.some(m => m.id === msg.id)) return prev;
@@ -166,7 +166,7 @@ const TeamChat = () => {
       });
     });
 
-    // Listen for message streaming chunks
+    // Escuta chunks de streaming de mensagem
     socket.on('message_chunk', ({ messageId, chunk }) => {
       setMessages(prev =>
         prev.map(m =>
@@ -177,7 +177,7 @@ const TeamChat = () => {
       );
     });
 
-    // Listen for completed streaming message
+    // Escuta mensagem de streaming completa
     socket.on('message_complete', ({ messageId, content }) => {
       setMessages(prev =>
         prev.map(m =>
@@ -188,7 +188,7 @@ const TeamChat = () => {
       );
     });
 
-    // Listen for edited messages
+    // Escuta mensagens editadas
     socket.on('message_edited', ({ messageId, content }) => {
       setMessages(prev =>
         prev.map(m =>
@@ -212,12 +212,12 @@ const TeamChat = () => {
     };
   }, [socket, activeTeam, user]);
 
-  // Scroll to bottom when messages change
+  // Rola para o final quando as mensagens mudam
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load invitations
+  // Carrega convites
   const loadInvitations = async () => {
     try {
       const res = await fetch(`${BACKEND}/api/teams/invitations`, {
@@ -232,7 +232,7 @@ const TeamChat = () => {
     }
   };
 
-  // Load accepted teams
+  // Carrega equipes aceitas
   const loadTeams = async () => {
     setLoadingTeams(true);
     try {
@@ -242,7 +242,7 @@ const TeamChat = () => {
       const data = await res.json();
       if (Array.isArray(data)) {
         setTeams(data);
-        // Automatically select first team if available
+        // Seleciona automaticamente a primeira equipe se disponível
         if (data.length > 0 && !activeTeam) {
           selectTeam(data[0]);
         }
@@ -254,7 +254,7 @@ const TeamChat = () => {
     }
   };
 
-  // Load team members and user's role
+  // Carrega membros da equipe e papel do usuário
   const loadTeamMembers = async (teamId) => {
     try {
       const res = await fetch(`${BACKEND}/api/teams/${teamId}/members`, {
@@ -273,7 +273,7 @@ const TeamChat = () => {
     }
   };
 
-  // Handle invitation accept
+  // Lida com aceitação de convite
   const handleAcceptInvite = async (invite) => {
     try {
       const res = await fetch(`${BACKEND}/api/teams/invitations/${invite.membership_id}/accept`, {
@@ -283,7 +283,7 @@ const TeamChat = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao aceitar convite.');
       
-      // Remove invitation and reload teams
+      // Remove convite e recarrega equipes
       setInvitations(prev => prev.filter(i => i.membership_id !== invite.membership_id));
       await loadTeams();
     } catch (err) {
@@ -291,7 +291,7 @@ const TeamChat = () => {
     }
   };
 
-  // Handle invitation reject
+  // Lida com rejeição de convite
   const handleRejectInvite = async (invite) => {
     if (!window.confirm(`Tem certeza de que deseja recusar o convite para a equipe "${invite.team_name}"?`)) return;
     try {
@@ -308,7 +308,7 @@ const TeamChat = () => {
     }
   };
 
-  // Create new team
+  // Cria nova equipe
   const handleCreateTeam = async (e) => {
     e.preventDefault();
     if (!newTeamName.trim()) return;
@@ -425,7 +425,7 @@ const TeamChat = () => {
         throw new Error(data.error || 'Erro ao atualizar configurações da equipe.');
       }
       
-      // Update local state
+      // Atualiza estado local
       setTeams(prev => prev.map(t => t.id === activeTeam.id ? { ...t, nome: data.nome, avatar: data.avatar } : t));
       setActiveTeam(prev => ({ ...prev, nome: data.nome, avatar: data.avatar }));
       alert('Configurações atualizadas com sucesso!');
@@ -451,7 +451,7 @@ const TeamChat = () => {
       alert('Equipe excluída com sucesso!');
       setShowManageModal(false);
       
-      // Remove team from list and reset selection
+      // Remove equipe da lista e reseta seleção
       const remainingTeams = teams.filter(t => t.id !== activeTeam.id);
       setTeams(remainingTeams);
       if (remainingTeams.length > 0) {
@@ -466,7 +466,7 @@ const TeamChat = () => {
     }
   };
 
-  // Load all sessions (team + private) to sync state
+  // Carrega todas as sessões (equipe + privada) para sincronizar estado
   const loadSessions = async () => {
     try {
       const res = await fetch(`${BACKEND}/api/chat/sessions`, {
@@ -481,7 +481,7 @@ const TeamChat = () => {
     }
   };
 
-  // Select a specific session (conversation)
+  // Seleciona uma sessão específica (conversa)
   const selectSession = async (session) => {
     setActiveSession(session);
     setMessages([]);
@@ -496,7 +496,7 @@ const TeamChat = () => {
     }
   };
 
-  // Select team and fetch its chat sessions
+  // Seleciona equipe e busca suas sessões de chat
   const selectTeam = async (team) => {
     setActiveTeam(team);
     setActiveSession(null);
@@ -509,13 +509,13 @@ const TeamChat = () => {
       const allSessions = await res.json();
       setSessions(allSessions);
       
-      // Look for any sessions with matching team_id
+      // Procura por quaisquer sessões com o mesmo team_id
       const teamSessions = allSessions.filter(s => s.team_id === team.id);
       if (teamSessions.length > 0) {
-        // Select the first (most recent) one
+        // Seleciona a primeira (mais recente)
         selectSession(teamSessions[0]);
       } else {
-        // Automatically create a default shared session for this team
+        // Cria automaticamente uma sessão compartilhada padrão para esta equipe
         createNewTeamSession(team.id, `Geral - ${team.nome}`);
       }
     } catch (err) {
@@ -523,7 +523,7 @@ const TeamChat = () => {
     }
   };
 
-  // Create a new session for a specific team
+  // Cria uma nova sessão para uma equipe específica
   const createNewTeamSession = async (teamId, title = 'Nova conversa') => {
     setLoading(true);
     try {
@@ -551,7 +551,7 @@ const TeamChat = () => {
     }
   };
 
-  // Delete a session
+  // Exclui uma sessão
   const deleteSession = async (e, sessionId) => {
     e.stopPropagation();
     if (!window.confirm('Excluir esta conversa compartilhada?')) return;
@@ -600,7 +600,7 @@ const TeamChat = () => {
     setEditingId(null);
   };
 
-  // Send message
+  // Envia mensagem
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim() || loading || !activeSession || !activeTeam) return;
@@ -633,7 +633,7 @@ const TeamChat = () => {
         throw new Error(errorData.error || `Erro no servidor (${res.status})`);
       }
 
-      // Auto-rename session
+      // Renomeia a sessão automaticamente
       if (activeSession.title === 'Nova conversa') {
         const autoTitle = messageInput.slice(0, 50);
         await fetch(`${BACKEND}/api/chat/sessions/${activeSession.id}`, {
@@ -656,7 +656,7 @@ const TeamChat = () => {
     }
   };
 
-  // Edit assistant message collaboratively
+  // Edita mensagem do assistente de forma colaborativa
   const handleEditMessage = async (messageId, newContent) => {
     try {
       const res = await fetch(`${BACKEND}/api/chat/messages/${messageId}`, {
@@ -671,7 +671,7 @@ const TeamChat = () => {
         const data = await res.json();
         throw new Error(data.error || 'Falha ao salvar edição.');
       }
-      // UI updates automatically via WebSocket event 'message_edited' broadcasted to the room
+      // UI atualiza automaticamente via evento de WebSocket 'message_edited' transmitido para a sala
     } catch (err) {
       alert(err.message);
     }
@@ -761,7 +761,7 @@ const TeamChat = () => {
 
   return (
     <div className="chat-page">
-      {/* Page-level Sidebar: Column 1 (workspaces) + Column 2 (channels) */}
+      {/* Sidebar em nível de página: Coluna 1 (workspaces) + Coluna 2 (canais) */}
       <div 
         className="chat-sidebar" 
         style={{ 
@@ -776,7 +776,7 @@ const TeamChat = () => {
         }}
       >
         <div style={{ width: '264px', display: 'flex', flexDirection: 'row', height: '100%', flexShrink: 0 }}>
-          {/* Column 1: Workspace/Team selector (68px wide) */}
+          {/* Coluna 1: Seletor de Workspace/Equipe (largura 68px) */}
         <div 
           style={{
             width: '68px',
@@ -792,13 +792,13 @@ const TeamChat = () => {
           }}
           className="team-chat-spaces-column"
         >
-          {/* Teams List */}
+          {/* Lista de Equipes */}
           {loadingTeams ? (
             <Loader2 size={16} className="spin" style={{ color: 'var(--text-muted)', margin: '12px 0' }} />
           ) : (
             teams.map(team => (
               <div key={team.id} style={{ position: 'relative', display: 'flex', justifyContent: 'center', width: '100%', marginBottom: '12px', flexShrink: 0 }}>
-                {/* Active indicator bar */}
+                {/* Barra indicadora de ativo */}
                 {activeTeam?.id === team.id && (
                   <div style={{
                     position: 'absolute',
@@ -851,7 +851,7 @@ const TeamChat = () => {
             ))
           )}
           
-          {/* Create new team button */}
+          {/* Botão de criar nova equipe */}
           <button
             onClick={() => setShowCreateTeamModal(true)}
             title="Criar Novo Espaço de Equipe"
@@ -887,7 +887,7 @@ const TeamChat = () => {
           </button>
         </div>
 
-        {/* Column 2: Conversations/Channels selector (196px wide) */}
+        {/* Coluna 2: Seletor de Conversas/Canais (largura 196px) */}
         <div 
           style={{
             width: '196px',
@@ -903,7 +903,7 @@ const TeamChat = () => {
         >
           {activeTeam ? (
             <>
-              {/* Header info */}
+              {/* Info do Cabeçalho */}
               <div style={{
                 padding: '16px 14px 12px',
                 borderBottom: '1px solid var(--border)',
@@ -952,7 +952,7 @@ const TeamChat = () => {
                 )}
               </div>
 
-              {/* Conversations List */}
+              {/* Lista de Conversas */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1016,7 +1016,7 @@ const TeamChat = () => {
             </div>
           )}
 
-          {/* Invitations Section at bottom of Column 2 */}
+          {/* Seção de Convites na parte inferior da Coluna 2 */}
           {invitations.length > 0 && (
             <div style={{ borderTop: '1px solid var(--border)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0, backgroundColor: 'var(--bg-page)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1083,12 +1083,12 @@ const TeamChat = () => {
       </div>
       </div>
 
-      {/* Main Chat Area */}
+      {/* Área Principal do Chat */}
       <div className="chat-main" style={{ position: 'relative' }}>
-        {/* Tech Background Canvas */}
+        {/* Canvas de Background Tecnológico */}
         <TechBackground isDark={isDark} />
 
-        {/* Chat Header */}
+        {/* Cabeçalho do Chat */}
         <div className="chat-main-header" style={{
           display: 'flex',
           alignItems: 'center',
@@ -1174,7 +1174,7 @@ const TeamChat = () => {
             </div>
           </div>
 
-          {/* Team actions */}
+          {/* Ações da equipe */}
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {activeTeam && userTeamRole === 'admin' && (
               <button
@@ -1202,29 +1202,39 @@ const TeamChat = () => {
 
         {activeTeam && activeSession ? (
           <>
-            {/* Chat Messages */}
-            <div className="chat-messages" style={{ position: 'relative', zIndex: 1 }}>
-              {messages.map((msg, index) => (
-                <ChatMessage key={msg.id || msg.created_at || `msg-${index}`} message={msg} onEdit={handleEditMessage} />
-              ))}
-              {loading && (
-                <div className="chat-message chat-message--ai">
-                  <div className="chat-message__avatar"><Bot size={16} /></div>
-                  <div className="chat-message__body">
-                    <div className="chat-message__header">
-                      <span className="chat-message__sender">Voll AI</span>
-                    </div>
-                    <div className="chat-typing">
-                      <Loader2 size={14} className="spin" />
-                      <span>Voll AI está pensando…</span>
+            {/* Mensagens do Chat */}
+            {messages.length === 0 ? (
+              <div className="chat-welcome" style={{ position: 'relative', zIndex: 1 }}>
+                <div className="chat-welcome__icon">
+                  <Bot size={48} />
+                </div>
+                <h1>Olá, sou o Voll AI</h1>
+                <p>Assistente corporativo para a equipe <strong>{activeTeam.nome}</strong>.<br />Como posso ajudar o time hoje?</p>
+              </div>
+            ) : (
+              <div className="chat-messages" style={{ position: 'relative', zIndex: 1 }}>
+                {messages.map((msg, index) => (
+                  <ChatMessage key={msg.id || msg.created_at || `msg-${index}`} message={msg} onEdit={handleEditMessage} />
+                ))}
+                {loading && (
+                  <div className="chat-message chat-message--ai">
+                    <div className="chat-message__avatar"><Bot size={16} /></div>
+                    <div className="chat-message__body">
+                      <div className="chat-message__header">
+                        <span className="chat-message__sender">Voll AI</span>
+                      </div>
+                      <div className="chat-typing">
+                        <Loader2 size={14} className="spin" />
+                        <span>Voll AI está pensando…</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
 
-            {/* Message Input Area */}
+            {/* Área de Entrada de Mensagem */}
             <div className="chat-input-area" style={{ position: 'relative', zIndex: 2 }}>
               {isListening && (
                 <div className="chat-voice-active-banner">
@@ -1344,7 +1354,7 @@ const TeamChat = () => {
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600 }}>Ícone da Equipe</label>
                 
-                {/* Preview and Upload button */}
+                {/* Botão de Preview e Upload */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                   <div style={{
                     width: '48px',
@@ -1399,7 +1409,7 @@ const TeamChat = () => {
                   )}
                 </div>
 
-                {/* Presets Grid */}
+                {/* Grade de Presets */}
                 <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Ou escolha um preset:</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {PRESET_ICONS.map(preset => {
@@ -1474,7 +1484,7 @@ const TeamChat = () => {
               </button>
             </div>
 
-            {/* Control Tabs */}
+            {/* Abas de Controle */}
             <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '20px', gap: '16px' }}>
               <button
                 type="button"
@@ -1782,7 +1792,7 @@ const TeamChat = () => {
                 <div style={{ marginBottom: '8px' }}>
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600 }}>Ícone da Equipe</label>
                   
-                  {/* Preview and Upload button */}
+                  {/* Botão de Preview e Upload */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                     <div style={{
                       width: '48px',
@@ -1837,7 +1847,7 @@ const TeamChat = () => {
                     )}
                   </div>
 
-                  {/* Presets Grid */}
+                  {/* Grade de Presets */}
                   <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Ou selecione um preset:</span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {PRESET_ICONS.map(preset => {

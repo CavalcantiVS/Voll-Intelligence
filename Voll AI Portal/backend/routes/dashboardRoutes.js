@@ -45,8 +45,8 @@ router.get('/chart', async (req, res) => {
 
     const numDays = parseInt(days, 10);
 
-    // Generate series of last N days and join with counts grouped by date
-    // Note: This relies on PostgreSQL functions
+    // Gera série dos últimos N dias e junta com as contagens agrupadas por data
+    // Nota: Isso depende das funções do PostgreSQL
     const query = `
       WITH date_series AS (
         SELECT generate_series(
@@ -67,11 +67,11 @@ router.get('/chart', async (req, res) => {
 
     const result = await pool.query(query, [userId]);
     
-    // Format for recharts
+    // Formata para recharts
     const chartData = result.rows.map(row => {
       const d = new Date(row.raw_date);
-      // For <=14 days, we can show the day name (Dom, Seg, etc) in frontend, 
-      // but let's provide raw date and formatted date here
+      // Para <=14 dias, podemos mostrar o nome do dia (Dom, Seg, etc) no frontend, 
+      // mas vamos fornecer a data bruta e a data formatada aqui
       return {
         date: row.date_formatted,
         rawDate: row.raw_date,

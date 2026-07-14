@@ -16,14 +16,14 @@ import {
   Tooltip,
 } from 'recharts';
 
-/* ── Period options ─────────────────────────────────────────── */
+/* ── Opções de período ─────────────────────────────────────────── */
 const PERIODS = [
   { label: '7 dias', days: 7 },
   { label: '14 dias', days: 14 },
   { label: '30 dias', days: 30 },
 ];
 
-/* ── Custom tooltip ─────────────────────────────────────────── */
+/* ── Tooltip personalizado ─────────────────────────────────────────── */
 const ChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   const { date, total } = payload[0]?.payload ?? {};
@@ -38,7 +38,7 @@ const ChartTooltip = ({ active, payload, label }) => {
   );
 };
 
-/* ── Skeleton components ────────────────────────────────────── */
+/* ── Componentes skeleton ────────────────────────────────────── */
 const StatSkeleton = () => (
   <div className="sk-stat-card">
     <div className="sk sk-icon" />

@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const { requireAdmin } = require('../middleware/authMiddleware');
 
 // GET /api/users?userId=<admin_id>
-// Lists all collaborators (admin only)
+// Lista todos os colaboradores (apenas admin)
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -21,7 +21,7 @@ router.get('/', requireAdmin, async (req, res) => {
 });
 
 // POST /api/users
-// Creates a new collaborator (admin only)
+// Cria um novo colaborador (apenas admin)
 router.post('/', requireAdmin, async (req, res) => {
   try {
     const { name, email, role, department, status, avatar, allowed_screens } = req.body;
@@ -30,7 +30,7 @@ router.post('/', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Nome e e-mail são obrigatórios' });
     }
 
-    // Check duplicate email
+    // Verifica email duplicado
     const existing = await pool.query(`SELECT id FROM users WHERE email = $1`, [email.trim().toLowerCase()]);
     if (existing.rows.length > 0) {
       return res.status(409).json({ error: 'Já existe um colaborador com este e-mail' });
@@ -62,18 +62,18 @@ router.post('/', requireAdmin, async (req, res) => {
 });
 
 // PUT /api/users/:targetId
-// Updates role and/or status of a specific user (admin only)
+// Atualiza papel e/ou status de um usuário específico (apenas admin)
 router.put('/:targetId', requireAdmin, async (req, res) => {
   try {
     const { targetId } = req.params;
     const { role, status, name, email, department, avatar, allowed_screens } = req.body;
 
-    // Prevent admin from suspending themselves
+    // Impede o admin de suspender a si mesmo
     if (targetId === req.adminId && status === 'Suspenso') {
       return res.status(400).json({ error: 'Você não pode suspender sua própria conta' });
     }
 
-    // Build dynamic SET clause
+    // Constrói cláusula SET dinâmica
     const fields = [];
     const values = [];
     let idx = 1;
@@ -130,7 +130,7 @@ router.put('/:targetId', requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/users/:targetId
-// Deletes a specific user (admin only)
+// Exclui um usuário específico (apenas admin)
 router.delete('/:targetId', requireAdmin, async (req, res) => {
   try {
     const { targetId } = req.params;

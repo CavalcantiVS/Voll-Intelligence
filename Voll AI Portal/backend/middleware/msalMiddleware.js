@@ -5,7 +5,7 @@ const TENANT_ID = process.env.AZURE_TENANT_ID;
 const CLIENT_ID = process.env.AZURE_CLIENT_ID;
 const ALLOWED_DOMAIN = process.env.AZURE_ALLOWED_DOMAIN || 'vollsolutions.com.br';
 
-// Client that fetches Microsoft's public signing keys
+// Cliente que busca as chaves de assinatura públicas da Microsoft
 const client = jwksClient({
   jwksUri: `https://login.microsoftonline.com/${TENANT_ID}/discovery/v2.0/keys`,
   cache: true,
@@ -21,7 +21,7 @@ function getSigningKey(header, callback) {
   });
 }
 
-// Validates a Microsoft-issued access/id token and returns the decoded payload
+// Valida um token de access/id emitido pela Microsoft e retorna o payload decodificado
 const validateMicrosoftToken = (token) => {
   return new Promise((resolve, reject) => {
     jwt.verify(
@@ -38,7 +38,7 @@ const validateMicrosoftToken = (token) => {
       (err, decoded) => {
         if (err) return reject(err);
 
-        // Enforce domain restriction
+        // Aplica restrição de domínio
         const email = decoded.preferred_username || decoded.upn || decoded.email || '';
         const domain = email.split('@')[1] || '';
         if (domain.toLowerCase() !== ALLOWED_DOMAIN.toLowerCase()) {

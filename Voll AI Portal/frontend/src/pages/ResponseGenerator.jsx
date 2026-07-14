@@ -4,7 +4,7 @@ import { Headset, Loader2, Copy, Check, FileText, Mic, MicOff } from 'lucide-rea
 import { useAuth } from '../contexts/AuthContext';
 
 /* ----------------------------------------------------------------
-   Shared skeleton rows while AI is generating
+   Linhas de esqueleto compartilhadas enquanto a IA está gerando
 ---------------------------------------------------------------- */
 const Skeleton = () => (
   <div className="output-panel__loading">
@@ -130,16 +130,16 @@ const ResponseGenerator = () => {
 
   return (
     <div className="generator-page">
-      {/* Page header */}
+      {/* Cabeçalho da página */}
       <div className="dashboard-header">
         <h1>Assistente de Redação Voll</h1>
         <p>Crie respostas prontas para atendimento baseadas no tipo de ocorrência e tom desejado.</p>
       </div>
 
-      {/* Two-column grid */}
+      {/* Grade de duas colunas */}
       <div className="generator-grid">
 
-        {/* ── LEFT: Form ── */}
+        {/* ── ESQUERDA: Formulário ── */}
         <div className="form-card">
           <form onSubmit={handleSubmit}>
 
@@ -198,7 +198,7 @@ const ResponseGenerator = () => {
           </form>
         </div>
 
-        {/* ── RIGHT: Output panel ── */}
+        {/* ── DIREITA: Painel de saída ── */}
         <div className="output-panel">
           <div className="output-panel__header">
             <span className="output-panel__title">

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/dbConfig');
 
-// ── Helper: verify the caller is an Administrador Geral ──────────
+// ── Helper: verifica se o chamador é um Administrador Geral ──────────
 const requireAdmin = async (req, res, next) => {
   try {
     const userId = req.query.userId || req.body.userId;
@@ -28,7 +28,7 @@ const requireAdmin = async (req, res, next) => {
 };
 
 // GET /api/departments
-// List all departments ordered by sort order then name
+// Lista todos os departamentos ordenados pela ordem de classificação e depois pelo nome
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const { rows } = await pool.query(`SELECT id, name, order_index FROM departments ORDER BY order_index ASC, name ASC`);
@@ -40,7 +40,7 @@ router.get('/', requireAdmin, async (req, res) => {
 });
 
 // PUT /api/departments/reorder
-// Reorder departments
+// Reordena departamentos
 router.put('/reorder', requireAdmin, async (req, res) => {
   try {
     const { order } = req.body; // array of { id, order_index }
@@ -48,7 +48,7 @@ router.put('/reorder', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Formato de ordem inválido' });
     }
 
-    // Begin transaction
+    // Inicia a transação
     await pool.query('BEGIN');
     for (const item of order) {
       await pool.query(`UPDATE departments SET order_index = $1 WHERE id = $2`, [item.order_index, item.id]);
@@ -64,7 +64,7 @@ router.put('/reorder', requireAdmin, async (req, res) => {
 });
 
 // POST /api/departments
-// Add a new department (requires name, check duplicate)
+// Adiciona um novo departamento (requer nome, verifica duplicata)
 router.post('/', requireAdmin, async (req, res) => {
   try {
     const { name } = req.body;
@@ -89,7 +89,7 @@ router.post('/', requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/departments/:id
-// Delete a department (prevent if any user is currently using it)
+// Exclui um departamento (previne se algum usuário o estiver usando atualmente)
 router.delete('/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;

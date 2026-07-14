@@ -25,7 +25,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [showTraditional, setShowTraditional] = useState(false);
 
-  // Sync global auth error with local error display
+  // Sincronizar erro global de autenticação com a exibição de erro local
   React.useEffect(() => {
     if (authError) {
       setError(authError);
@@ -90,16 +90,16 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Divider */}
+        {/* Divisor */}
         <div className="login-divider" />
 
-        {/* Heading */}
+        {/* Cabeçalho */}
         <div className="login-heading">
           <h1>Bem-vindo de volta</h1>
           <p>Acesse sua conta corporativa para continuar.</p>
         </div>
 
-        {/* Error banner */}
+        {/* Banner de erro */}
         {error && (
           <div className="login-error">
             <AlertCircle size={16} />
@@ -209,7 +209,7 @@ const Login = () => {
           </form>
         )}
 
-        {/* Footer hint */}
+        {/* Dica do rodapé */}
         <p className="login-hint">
           Problemas de acesso? Fale com o time de TI da Voll.
         </p>

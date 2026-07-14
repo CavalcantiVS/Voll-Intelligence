@@ -13,7 +13,7 @@ const Chat = () => {
   const selectSessionId = location.state?.selectSessionId;
   const [isDark, setIsDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark');
 
-  // Sync with theme changes
+  // Sincronizar com mudanças de tema
   useEffect(() => {
     const observer = new MutationObserver(() => {
       setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
@@ -43,12 +43,12 @@ const Chat = () => {
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Scroll to bottom
+  // Rolar para o fundo
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load shared session or general sessions
+  // Carregar sessão compartilhada ou sessões gerais
   useEffect(() => {
     if (!token) return;
     const queryParams = new URLSearchParams(window.location.search);
@@ -148,7 +148,7 @@ const Chat = () => {
             return;
           }
         }
-        // Filter personal sessions (without team_id) to select the first one
+        // Filtrar sessões pessoais (sem team_id) para selecionar a primeira
         const personal = data.filter(s => !s.team_id);
         if (personal.length > 0 && !activeSession) {
           selectSession(personal[0]);
@@ -273,7 +273,7 @@ const Chat = () => {
 
     let currentSession = activeSession;
 
-    // Create session if none exists
+    // Criar sessão se nenhuma existir
     if (!currentSession) {
       try {
         const res = await fetch(`${BACKEND}/api/chat/sessions`, {
@@ -339,7 +339,7 @@ const Chat = () => {
 
       setMessages(prev => [...prev, newMessage]);
 
-      // Handle typing animation locally
+      // Lidar com a animação de digitação localmente
       const delayMs = 8;
       const maxSteps = 50;
       const charsPerStep = Math.max(1, Math.ceil(fullText.length / maxSteps));
@@ -359,7 +359,7 @@ const Chat = () => {
         });
       }
 
-      // Auto-rename session
+      // Renomear sessão automaticamente
       if (currentSession.title === 'Nova conversa') {
         const autoTitle = messageInput.slice(0, 50);
         await fetch(`${BACKEND}/api/chat/sessions/${currentSession.id}`, {
@@ -481,7 +481,7 @@ const Chat = () => {
     );
   }, [input]);
 
-  // Exclude team chats from this screen completely
+  // Excluir chats de equipe desta tela completamente
   const personalSessions = useMemo(() => sessions.filter(s => !s.team_id), [sessions]);
 
   return (
@@ -556,12 +556,12 @@ const Chat = () => {
         </div>
       </div>
 
-      {/* Main Chat Area */}
+      {/* Área Principal do Chat */}
       <div className="chat-main" style={{ position: 'relative' }}>
-        {/* Tech Background Canvas */}
+        {/* Canvas de Fundo Tecnológico */}
         <TechBackground isDark={isDark} />
 
-        {/* Header */}
+        {/* Cabeçalho */}
         <div className="chat-main-header" style={{
           display: 'flex',
           alignItems: 'center',
@@ -692,7 +692,7 @@ const Chat = () => {
           </div>
         )}
 
-        {/* Input Area */}
+        {/* Área de Entrada */}
         {isSharedPreview ? (
           <div style={{
             padding: '24px',

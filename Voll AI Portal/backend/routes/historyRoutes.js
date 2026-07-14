@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/dbConfig');
 
-// Get history for the current user
+// Obtém o histórico do usuário atual
 router.get('/', async (req, res) => {
   try {
     const { userId } = req.query;
@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Delete history item
+// Exclui o item do histórico
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;

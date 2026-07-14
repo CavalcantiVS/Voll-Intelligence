@@ -1680,9 +1680,11 @@ select.form-control {
   0% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.15);
   }
+
   100% {
     transform: scale(1);
   }
@@ -1698,9 +1700,11 @@ select.form-control {
   0% {
     box-shadow: 0 0 0 3px rgba(224, 8, 46, 0.15);
   }
+
   50% {
     box-shadow: 0 0 0 5px rgba(224, 8, 46, 0.3);
   }
+
   100% {
     box-shadow: 0 0 0 3px rgba(224, 8, 46, 0.15);
   }
@@ -1745,10 +1749,12 @@ select.form-control {
     transform: scale(0.8);
     opacity: 0.5;
   }
+
   50% {
     transform: scale(1.3);
     opacity: 1;
   }
+
   100% {
     transform: scale(0.8);
     opacity: 0.5;
@@ -2881,8 +2887,15 @@ select.form-control {
 }
 
 @keyframes um-pulse-green {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* ── Inline select (role dropdown) ─────────────────────────── */
@@ -3075,6 +3088,7 @@ select.form-control {
     opacity: 0;
     transform: translateY(12px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -3156,8 +3170,13 @@ select.form-control {
 }
 
 @keyframes um-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes um-modal-in {
@@ -3165,6 +3184,7 @@ select.form-control {
     opacity: 0;
     transform: translateY(16px) scale(0.97);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -3471,7 +3491,8 @@ select.form-control {
 
 .chat-session-item.active {
   border-left: 3px solid var(--voll-red);
-  padding-left: 7px; /* compensate for border width */
+  padding-left: 7px;
+  /* compensate for border width */
 }
 
 [data-theme='dark'] .chat-session-item.active {
@@ -3491,9 +3512,11 @@ div[style*="backgroundColor: '#10b981'"] {
   0% {
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
   }
+
   70% {
     box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
   }

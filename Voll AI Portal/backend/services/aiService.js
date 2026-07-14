@@ -2,8 +2,8 @@ const OpenAI = require('openai');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 /**
- * Service to handle communication with Google Gemini or OpenAI APIs
- * Falls back to mock responses if API keys are not configured
+ * Serviço para lidar com a comunicação com as APIs do Google Gemini ou OpenAI
+ * Usa respostas de mock como fallback se as API keys não estiverem configuradas
  */
 class AIService {
   constructor() {
@@ -24,7 +24,7 @@ class AIService {
   }
 
   /**
-   * Generate a response for tool prompts
+   * Gera uma resposta para os prompts da ferramenta
    */
   async generateResponse(sanitizedPrompt, type, options = {}) {
     const systemPrompt = this._getSystemPrompt(type);
@@ -52,7 +52,7 @@ class AIService {
   }
 
   /**
-   * Generate a chat response
+   * Gera uma resposta de chat
    */
   async generateChatResponse(history, newPrompt, options = {}) {
     const systemMessageContent = `Você é o Voll AI, um assistente corporativo interno da Voll Solutions.`;
@@ -61,7 +61,7 @@ class AIService {
 
     const isGeminiModel = model && model.toLowerCase().includes('gemini');
 
-    // Build the user message content
+    // Constrói o conteúdo da mensagem do usuário
     let userContent = newPrompt;
     let geminiParts = [{ text: newPrompt }];
 
@@ -70,12 +70,12 @@ class AIService {
         userContent = `[Conteúdo extraído do arquivo anexado "${options.attachment.fileName}":\n${options.attachment.text}]\n\nPergunta/Instrução do usuário: ${newPrompt}`;
         geminiParts[0].text = userContent;
       } else if (options.attachment.base64) {
-        // OpenAI format
+        // Formato da OpenAI
         userContent = [
           { type: 'text', text: newPrompt },
           { type: 'image_url', image_url: { url: `data:${options.attachment.mimeType};base64,${options.attachment.base64}` } }
         ];
-        // Gemini format
+        // Formato do Gemini
         geminiParts = [
           { text: newPrompt },
           { inlineData: { data: options.attachment.base64, mimeType: options.attachment.mimeType } }
@@ -99,7 +99,7 @@ class AIService {
       return this._callOpenAI([systemMessage, ...history, { role: 'user', content: userContent }], model, temperature);
     }
     
-    // Mock response if no keys
+    // Resposta de mock se não houver chaves
     return this._mockResponse('Chat', newPrompt, model, temperature);
   }
 
@@ -165,7 +165,7 @@ Verifique com o time de desenvolvimento.`;
       
       const genModel = this.genAI.getGenerativeModel(geminiModelConfig);
       
-      // Convert standard history to Gemini history format
+      // Converte o histórico padrão para o formato de histórico do Gemini
       const formattedHistory = history.map(m => ({
         role: m.role === 'user' ? 'user' : 'model',
         parts: [{ text: m.content }]
@@ -213,7 +213,7 @@ Verifique com o time de desenvolvimento.`;
   }
 
   /**
-   * Generate a chat response stream (OpenAI with callback or simulated fallback)
+   * Gera um stream de resposta de chat (OpenAI com callback ou fallback simulado)
    */
   async generateChatResponseStream(history, newPrompt, options = {}, onChunk) {
     const systemMessageContent = `Você é o Voll AI, um assistente corporativo interno da Voll Solutions.`;
@@ -222,7 +222,7 @@ Verifique com o time de desenvolvimento.`;
 
     const isGeminiModel = model && model.toLowerCase().includes('gemini');
 
-    // Build the user message content
+    // Constrói o conteúdo da mensagem do usuário
     let userContent = newPrompt;
 
     if (options.attachment) {
@@ -236,7 +236,7 @@ Verifique com o time de desenvolvimento.`;
       }
     }
 
-    // OpenAI Real Stream
+    // Stream Real da OpenAI
     if (!isGeminiModel && (this.useOpenAI || process.env.OPENAI_API_KEY)) {
       if (!this.client && process.env.OPENAI_API_KEY) {
         this.client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -263,12 +263,12 @@ Verifique com o time de desenvolvimento.`;
       return fullText;
     }
 
-    // Fallback: simulated stream for development/demo mode or Gemini
+    // Fallback: stream simulado para o modo de desenvolvimento/demo ou Gemini
     const mockFullText = isGeminiModel 
       ? await this.generateChatResponse(history, newPrompt, options)
       : this._mockResponse('Chat', newPrompt);
       
-    // Emit words gradually
+    // Emite as palavras gradualmente
     const words = mockFullText.split(/(\s+)/);
     for (const part of words) {
       if (part) {

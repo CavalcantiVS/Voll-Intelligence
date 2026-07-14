@@ -21,7 +21,7 @@ import Profile            from './pages/Profile';
 import './index.css';
 
 /* ----------------------------------------------------------------
-   ProtectedRoute — redirects to /login if user is not authenticated
+   ProtectedRoute — redireciona para /login se o usuário não estiver autenticado
 ---------------------------------------------------------------- */
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
@@ -54,20 +54,20 @@ const ProtectedRoute = ({ children }) => {
 };
 
 /* ----------------------------------------------------------------
-   App routes
+   Rotas do app
 ---------------------------------------------------------------- */
 function AppRoutes() {
   const { user } = useAuth();
 
   return (
     <Routes>
-      {/* Public */}
+      {/* Públicas */}
       <Route
         path="/login"
         element={user ? <Navigate to="/" replace /> : <Login />}
       />
 
-      {/* Protected — all inside Layout */}
+      {/* Protegidas — todas dentro de Layout */}
       <Route
         path="/"
         element={
@@ -91,7 +91,7 @@ function AppRoutes() {
         <Route path="profile"      element={<Profile />} />
       </Route>
 
-      {/* Catch-all */}
+      {/* Catch-all (qualquer outra rota) */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

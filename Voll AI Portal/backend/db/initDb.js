@@ -54,7 +54,7 @@ const initDb = async () => {
       ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_mimetype VARCHAR(100);
     `);
 
-    // Shared Workspaces (Espaços de Equipe) tables
+    // Tabelas de Shared Workspaces (Espaços de Equipe)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS equipes (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -103,14 +103,14 @@ const initDb = async () => {
 
     console.log('Database tables verified/created');
     
-    // Insert admin user if not exists, then ensure correct role
+    // Insere usuário admin se não existir, depois garante o papel correto
     await pool.query(`
       INSERT INTO users (id, name, email, role, department, status)
       SELECT '00000000-0000-0000-0000-000000000000', 'João Cavalcanti', 'joao.cavalcanti@vollsolutions.com.br', 'Administrador Geral', 'Diretoria', 'Ativo'
       WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = '00000000-0000-0000-0000-000000000000');
     `);
 
-    // Always update admin to ensure correct role (fixes pre-existing rows)
+    // Sempre atualiza o admin para garantir o papel correto (corrige linhas pré-existentes)
     await pool.query(`
       UPDATE users
       SET role = 'Administrador Geral',

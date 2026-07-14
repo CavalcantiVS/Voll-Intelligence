@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// Routes
+// Rotas
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/history', historyRoutes);
@@ -44,7 +44,7 @@ const io = new Server(server, {
 
 app.set('io', io);
 
-// Presence tracking: map of teamId -> array of online user objects
+// Rastreamento de presença: mapa de teamId -> array de objetos de usuários online
 const onlineUsersByTeam = {};
 
 io.on('connection', (socket) => {
@@ -54,7 +54,7 @@ io.on('connection', (socket) => {
     if (!teamId || !user) return;
     socket.join(teamId);
     
-    // Store connection association
+    // Armazena associação de conexão
     socket.teamId = teamId;
     socket.user = user;
 
@@ -62,14 +62,14 @@ io.on('connection', (socket) => {
       onlineUsersByTeam[teamId] = [];
     }
 
-    // Add if not already present
+    // Adiciona se não estiver presente
     const exists = onlineUsersByTeam[teamId].some(u => u.id === user.id);
     if (!exists) {
       onlineUsersByTeam[teamId].push(user);
     }
 
     console.log(`[Socket] User ${user.name} joined team room: ${teamId}`);
-    // Emit list of online members
+    // Emite lista de membros online
     io.to(teamId).emit('team_online_members', onlineUsersByTeam[teamId]);
   });
 
@@ -90,7 +90,7 @@ io.on('connection', (socket) => {
     const user = socket.user;
     
     if (teamId && user && onlineUsersByTeam[teamId]) {
-      // Remove user from online list of that team
+      // Remove usuário da lista online daquela equipe
       onlineUsersByTeam[teamId] = onlineUsersByTeam[teamId].filter(u => u.id !== user.id);
       io.to(teamId).emit('team_online_members', onlineUsersByTeam[teamId]);
     }
