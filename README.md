@@ -1,25 +1,46 @@
-🧠 Voll Intelligence
+# 🧠 Voll Intelligence
 
-Portal corporativo para uso seguro de Inteligência Artificial dentro da empresa.
+Portal corporativo para uso seguro e colaborativo de Inteligência Artificial dentro da empresa.
 
-🎯 Objetivo:
-Evitar que colaboradores utilizem ferramentas como ChatGPT de forma insegura, expondo dados sensíveis da empresa ou de clientes.
+## 🎯 Objetivo
+Evitar que colaboradores utilizem ferramentas como ChatGPT de forma insegura, expondo dados sensíveis da empresa ou de clientes. O projeto garante que o uso de IA seja **controlado, seguro e monitorado**.
 
-💡 Solução:
+## 💡 A Solução e Evolução
+O que começou como um portal interno básico evoluiu para o **Voll AI Portal**, uma plataforma moderna e completa. Agora o sistema conta com:
+- O uso de IA controlado e protegido;
+- Interações monitoradas e logs de auditoria;
+- Ambientes de colaboração em equipe.
 
-Criar um portal interno onde:
-- O uso de IA é controlado
-- As interações podem ser monitoradas
-- Dados sensíveis são protegidos
+## 🚀 Funcionalidades Atuais
 
-🚀 Funcionalidades (MVP)
+Passamos com sucesso da fase de MVP! O sistema agora conta com as seguintes funcionalidades ativas:
 
-- [ ] Login de usuário
-- [ ] Interface de chat com IA
-- [ ] Registro de conversas (logs)
-- [ ] Avisos de segurança
+- [x] **Login e Segurança:** Autenticação robusta (JWT) com integração **SSO via Microsoft Entra ID (Azure)**.
+- [x] **Interface de Chat com IA:** Área individual com suporte a Markdown, tabelas, código e histórico completo.
+- [x] **Espaço Colaborativo (TeamChat):** Ambientes separados por equipes e canais para colaboração integrada.
+- [x] **Controle de Acessos (RBAC):** Níveis de permissão rigorosos (Administrador Geral, Admin de Equipe, Membro comum).
+- [x] **Registro de Conversas e Dashboards:** Logs mantidos no PostgreSQL e painéis interativos (via Recharts) para gestão.
+- [x] **Avisos de Segurança:** Sistema automático de detecção de vazamento de dados sensíveis nas mensagens.
+- [x] **Design Premium:** Interface 100% repaginada utilizando **Glassmorphism**, contrastes profundos, *Dark Mode* integrado e arquitetura modular de CSS.
 
+## 🛠️ Tecnologias Utilizadas
 
-🚧 Em desenvolvimento (fase inicial)
+### Frontend (Voll AI Portal)
+* **React** + **Vite**
+* **CSS Modules** (Estilização modular e imersiva)
+* **Lucide React** (Ícones) e **Recharts** (Gráficos)
+* **Socket.io-client** (Tempo real)
 
-Feito por João Victor de Souza Cavalcanti
+### Backend
+* **Node.js** + **Express**
+* **PostgreSQL** (Banco de dados relacional via `pg`)
+* **Socket.io** (WebSockets para chat)
+
+## ⚙️ Estrutura do Repositório
+
+- `/Voll AI Portal`: Contém toda a aplicação principal (Frontend em React e Backend em Node.js).
+- `/Voll Desk`: (Outros serviços do ecossistema Voll).
+
+---
+*Criado por João Victor de Souza Cavalcanti.*
+*Desenvolvido em parceria com Antigravity.*
