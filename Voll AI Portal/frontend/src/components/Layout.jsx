@@ -19,12 +19,15 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import styles from './Layout.module.css';
 
 /* ----------------------------------------------------------------
    Barra Lateral
 ---------------------------------------------------------------- */
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
   const { user } = useAuth();
+  const location = useLocation();
+  const isTeamsPage = location.pathname === '/teams';
   const isAdmin = user?.role === 'Administrador Geral' || user?.role === 'Administrador';
 
   const checkAccess = (path) => {
@@ -63,7 +66,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         key={item.path}
         to={item.path}
         end={item.path === '/'}
-        className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+        className={({ isActive }) => `${styles.navItem}${isActive ? ` ${styles.navItemActive}` : ''}`}
         title={isCollapsed ? item.name : undefined}
       >
         {item.icon}
@@ -72,32 +75,33 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     ));
 
   return (
-    <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+    <div className={`${styles.sidebar} ${isCollapsed ? styles.sidebarCollapsed : ''}`}>
       {/* Logotipo */}
-      <div className="sidebar-logo">
-        <img src="../images/RemoveFundo Icon.png" alt="Voll" className="logo-img" />
+      <div className={styles.sidebarLogo}>
+        <img src="../images/RemoveFundo Icon.png" alt="Voll" className={styles.logoImg} />
         {!isCollapsed && <span>Voll Intelligence</span>}
       </div>
 
       {/* Navegação */}
-      <nav className="sidebar-nav" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <nav className={styles.sidebarNav} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         {renderGroup(mainItems)}
 
-        <div className="nav-section-label">Ferramentas</div>
+        <div className={styles.navSectionLabel}>Ferramentas</div>
         {renderGroup(toolItems)}
 
-        <div className="nav-section-label">Sistema</div>
+        <div className={styles.navSectionLabel}>Sistema</div>
         {renderGroup(systemItems)}
 
-        <button 
-          className="sidebar-toggle-btn" 
-          onClick={toggleSidebar}
-          title={isCollapsed ? "Expandir Menu" : "Recolher Menu"}
-          type="button"
-        >
-          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          {!isCollapsed && <span>Recolher Menu</span>}
-        </button>
+        {!isTeamsPage && (
+          <button 
+            className={styles.sidebarToggleBtn} 
+            onClick={toggleSidebar}
+            title={isCollapsed ? "Expandir Menu" : "Recolher Menu"}
+            type="button"
+          >
+            {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          </button>
+        )}
       </nav>
     </div>
   );
@@ -190,9 +194,9 @@ const Header = ({ isDarkMode, toggleTheme }) => {
     : 'AD';
 
   return (
-    <div className="header">
-      <div className="header-search-wrapper" ref={searchRef}>
-        <div className="header-search">
+    <div className={styles.header}>
+      <div className={styles.headerSearchWrapper} ref={searchRef}>
+        <div className={`${styles.headerSearch} ${focused ? styles.headerSearchFocus : ''}`}>
           <Search size={16} />
           <input
             type="text"
@@ -204,22 +208,22 @@ const Header = ({ isDarkMode, toggleTheme }) => {
         </div>
 
         {focused && (
-          <div className="search-results-dropdown">
+          <div className={styles.searchResultsDropdown}>
             {filteredTools.length > 0 && (
               <>
-                <div className="search-category-label">Ferramentas</div>
+                <div className={styles.searchCategoryLabel}>Ferramentas</div>
                 {filteredTools.map((tool) => (
                   <button
                     key={tool.path}
-                    className="search-item"
+                    className={styles.searchItem}
                     onClick={() => {
                       setQuery('');
                       setFocused(false);
                       navigate(tool.path);
                     }}
                   >
-                    <span className="search-item-icon">{tool.icon}</span>
-                    <span className="search-item-title">{tool.name}</span>
+                    <span className={styles.searchItemIcon}>{tool.icon}</span>
+                    <span className={styles.searchItemTitle}>{tool.name}</span>
                   </button>
                 ))}
               </>
@@ -227,28 +231,28 @@ const Header = ({ isDarkMode, toggleTheme }) => {
 
             {filteredSessions.length > 0 && (
               <>
-                <div className="search-category-label">Conversas Recentes</div>
+                <div className={styles.searchCategoryLabel}>Conversas Recentes</div>
                 {filteredSessions.map((session) => (
                   <button
                     key={session.id}
-                    className="search-item"
+                    className={styles.searchItem}
                     onClick={() => {
                       setQuery('');
                       setFocused(false);
                       navigate('/chat', { state: { selectSessionId: session.id } });
                     }}
                   >
-                    <span className="search-item-icon" style={{ color: 'var(--text-muted)' }}>
+                    <span className={styles.searchItemIcon} style={{ color: 'var(--text-muted)' }}>
                       <MessagesSquare size={14} />
                     </span>
-                    <span className="search-item-title">{session.title}</span>
+                    <span className={styles.searchItemTitle}>{session.title}</span>
                   </button>
                 ))}
               </>
             )}
 
             {!hasResults && (
-              <div className="search-no-results">
+              <div className={styles.searchNoResults}>
                 Nenhuma ferramenta ou conversa encontrada
               </div>
             )}
@@ -256,7 +260,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
         )}
       </div>
 
-      <div className="header-actions">
+      <div className={styles.headerActions}>
         <button className="btn btn-ghost" onClick={toggleTheme} title="Alternar tema" aria-label="Alternar tema">
           {isDarkMode ? <Sun size={17} /> : <Moon size={17} />}
         </button>
@@ -266,46 +270,46 @@ const Header = ({ isDarkMode, toggleTheme }) => {
         </button>
 
         <div 
-          className="user-profile" 
+          className={styles.userProfile} 
           ref={dropdownRef} 
           onClick={() => setDropdownOpen(!dropdownOpen)}
           style={{ position: 'relative', cursor: 'pointer', userSelect: 'none' }}
         >
-          <div className="avatar">
+          <div className={styles.avatar}>
             {user?.avatar ? (
               <img src={user.avatar} alt="User Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
             ) : (
               initials
             )}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}>{user?.name || 'Admin'}</span>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{user?.role || ''}</span>
+          <div className={styles.userInfo}>
+            <span className={styles.userName}>{user?.name || 'Admin'}</span>
+            <span className={styles.userRole}>{user?.role || ''}</span>
           </div>
 
           {dropdownOpen && (
-            <div className="profile-dropdown-menu" onClick={(e) => e.stopPropagation()}>
-              <div className="dropdown-header">
-                <span className="dropdown-name">{user?.name || 'Admin'}</span>
-                <span className="dropdown-email">{user?.email || ''}</span>
+            <div className={styles.profileDropdownMenu} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.dropdownHeader}>
+                <span className={styles.dropdownName}>{user?.name || 'Admin'}</span>
+                <span className={styles.dropdownEmail}>{user?.email || ''}</span>
               </div>
-              <div className="dropdown-divider" />
-              <button className="dropdown-item" onClick={() => { setDropdownOpen(false); navigate('/profile'); }}>
+              <div className={styles.dropdownDivider} />
+              <button className={styles.dropdownItem} onClick={() => { setDropdownOpen(false); navigate('/profile'); }}>
                 <User size={14} />
                 <span>Meu Perfil</span>
               </button>
-              <button className="dropdown-item" onClick={() => { setDropdownOpen(false); navigate('/settings'); }}>
+              <button className={styles.dropdownItem} onClick={() => { setDropdownOpen(false); navigate('/settings'); }}>
                 <Settings size={14} />
                 <span>Configurações</span>
               </button>
               {isAdmin && (
-                <button className="dropdown-item" onClick={() => { setDropdownOpen(false); navigate('/users'); }}>
+                <button className={styles.dropdownItem} onClick={() => { setDropdownOpen(false); navigate('/users'); }}>
                   <ShieldCheck size={14} />
                   <span>Controle de Acesso</span>
                 </button>
               )}
-              <div className="dropdown-divider" />
-              <button className="dropdown-item logout" onClick={() => { setDropdownOpen(false); handleLogout(); }}>
+              <div className={styles.dropdownDivider} />
+              <button className={`${styles.dropdownItem} ${styles.dropdownItemLogout}`} onClick={() => { setDropdownOpen(false); handleLogout(); }}>
                 <LogOut size={14} />
                 <span>Sair</span>
               </button>
@@ -324,13 +328,17 @@ const Layout = () => {
   const [isDarkMode, setIsDarkMode] = React.useState(false);
   const location = useLocation();
   const isChatPage = location.pathname === '/chat' || location.pathname === '/teams';
+  const isTeamsPage = location.pathname === '/teams';
 
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(() => {
+  const [isSidebarCollapsedState, setIsSidebarCollapsedState] = React.useState(() => {
     return localStorage.getItem('sidebar_collapsed') === 'true';
   });
 
+  const isSidebarCollapsed = isTeamsPage ? true : isSidebarCollapsedState;
+
   const toggleSidebar = () => {
-    setIsSidebarCollapsed(prev => {
+    if (isTeamsPage) return; // Prevent toggling when forced collapsed
+    setIsSidebarCollapsedState(prev => {
       const next = !prev;
       localStorage.setItem('sidebar_collapsed', String(next));
       return next;
@@ -363,68 +371,11 @@ const Layout = () => {
   };
 
   return (
-    <div className="app-container">
-      <style>{`
-        .sidebar {
-          transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-        }
-        .sidebar.collapsed {
-          width: 72px !important;
-          min-width: 72px !important;
-        }
-        .sidebar.collapsed .sidebar-logo span {
-          display: none !important;
-        }
-        .sidebar.collapsed .sidebar-logo {
-          justify-content: center !important;
-          padding: 20px 0 16px !important;
-        }
-        .sidebar.collapsed .nav-item {
-          justify-content: center !important;
-          padding: 12px 0 !important;
-          gap: 0 !important;
-        }
-        .sidebar.collapsed .nav-item span {
-          display: none !important;
-        }
-        .sidebar.collapsed .nav-section-label {
-          height: 1px !important;
-          background-color: var(--sidebar-border) !important;
-          margin: 12px 14px !important;
-          padding: 0 !important;
-          font-size: 0 !important;
-          overflow: hidden !important;
-        }
-        .sidebar-toggle-btn {
-          background: none;
-          border: none;
-          border-top: 1px solid var(--sidebar-border);
-          color: var(--text-secondary);
-          padding: 14px 20px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          width: 100%;
-          font-size: 0.825rem;
-          font-weight: 500;
-          transition: background-color 0.15s ease, color 0.15s ease;
-          margin-top: auto;
-        }
-        .sidebar-toggle-btn:hover {
-          background-color: var(--bg-page);
-          color: var(--voll-red);
-        }
-        .sidebar.collapsed .sidebar-toggle-btn {
-          justify-content: center !important;
-          padding: 14px 0 !important;
-          gap: 0 !important;
-        }
-      `}</style>
+    <div className={styles.appContainer}>
       <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />
-      <div className="main-content">
+      <div className={styles.mainContent}>
         <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
-        <div className={`page-content${isChatPage ? ' chat-page-container' : ''}`}>
+        <div className={`${styles.pageContent} ${isChatPage ? styles.chatPageContainer : ''}`}>
           <Outlet />
         </div>
       </div>

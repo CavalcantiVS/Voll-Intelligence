@@ -1,0 +1,64 @@
+.teamChatPage {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  /* Add a distinct background for the team area */
+  background: radial-gradient(circle at top left, rgba(79, 70, 229, 0.05) 0%, transparent 40%),
+              radial-gradient(circle at bottom right, rgba(236, 72, 153, 0.03) 0%, transparent 40%);
+}
+
+.chatArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  background-color: var(--bg-page);
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 24px rgba(0,0,0,0.02);
+}
+
+:global([data-theme='dark']) .chatArea {
+  background-color: rgba(15, 17, 26, 0.6);
+  backdrop-filter: blur(20px);
+}
+
+.topBanner {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-primary);
+}
+
+.topBannerIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4f46e5 0%, #ec4899 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+}
+
+.topBannerText {
+  display: flex;
+  flex-direction: column;
+}
+
+.topBannerText strong {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.topBannerText span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}

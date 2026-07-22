@@ -4,6 +4,7 @@ import ChatMessage from '../components/ChatMessage';
 import { useAuth } from '../contexts/AuthContext';
 import { io } from 'socket.io-client';
 import TechBackground from '../components/TechBackground';
+import styles from './TeamChat.module.css';
 
 const PRESET_ICONS = [
   { name: 'Cpu', label: 'Tecnologia' },
@@ -760,7 +761,7 @@ const TeamChat = () => {
   const initials = user?.name ? user.name.slice(0, 2).toUpperCase() : 'AD';
 
   return (
-    <div className="chat-page">
+    <div className={`chat-page ${styles.teamChatPage}`}>
       {/* Sidebar em nível de página: Coluna 1 (workspaces) + Coluna 2 (canais) */}
       <div 
         className="chat-sidebar" 
@@ -768,19 +769,19 @@ const TeamChat = () => {
           display: 'flex', 
           flexDirection: 'row', 
           height: '100%', 
-          width: isChatSidebarCollapsed ? '0px' : '264px',
-          minWidth: isChatSidebarCollapsed ? '0px' : '264px',
+          width: isChatSidebarCollapsed ? '0px' : '320px',
+          minWidth: isChatSidebarCollapsed ? '0px' : '320px',
           transition: 'width 0.25s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
           overflow: 'hidden',
           borderRight: isChatSidebarCollapsed ? 'none' : '1px solid var(--border)'
         }}
       >
-        <div style={{ width: '264px', display: 'flex', flexDirection: 'row', height: '100%', flexShrink: 0 }}>
-          {/* Coluna 1: Seletor de Workspace/Equipe (largura 68px) */}
+        <div style={{ width: '320px', display: 'flex', flexDirection: 'row', height: '100%', flexShrink: 0 }}>
+          {/* Coluna 1: Seletor de Workspace/Equipe (largura 72px) */}
         <div 
           style={{
-            width: '68px',
-            minWidth: '68px',
+            width: '72px',
+            minWidth: '72px',
             backgroundColor: 'var(--bg-page)',
             borderRight: '1px solid var(--border)',
             display: 'flex',
@@ -887,11 +888,11 @@ const TeamChat = () => {
           </button>
         </div>
 
-        {/* Coluna 2: Seletor de Conversas/Canais (largura 196px) */}
+        {/* Coluna 2: Seletor de Conversas/Canais (largura 248px) */}
         <div 
           style={{
-            width: '196px',
-            minWidth: '196px',
+            width: '248px',
+            minWidth: '248px',
             backgroundColor: 'var(--bg-surface)',
             display: 'flex',
             flexDirection: 'column',
@@ -941,15 +942,7 @@ const TeamChat = () => {
                       <LogOut size={14} />
                     </button>
                   </div>
-                ) : (
-                  <button
-                    onClick={handleLeaveTeam}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '4px', display: 'flex', alignItems: 'center' }}
-                    title="Sair da Equipe"
-                  >
-                    <LogOut size={14} />
-                  </button>
-                )}
+                ) : null}
               </div>
 
               {/* Lista de Conversas */}
@@ -1084,9 +1077,20 @@ const TeamChat = () => {
       </div>
 
       {/* Área Principal do Chat */}
-      <div className="chat-main" style={{ position: 'relative' }}>
+      <div className={`chat-main ${styles.chatArea}`}>
         {/* Canvas de Background Tecnológico */}
         <TechBackground isDark={isDark} />
+
+        {/* Cabeçalho Distinto de Equipe */}
+        <div className={styles.topBanner}>
+          <div className={styles.topBannerIcon}>
+            <Users size={20} />
+          </div>
+          <div className={styles.topBannerText}>
+            <strong>Espaço Colaborativo</strong>
+            <span>Você está no ambiente de equipes. Comunique-se, crie e compartilhe com seus colegas.</span>
+          </div>
+        </div>
 
         {/* Cabeçalho do Chat */}
         <div className="chat-main-header" style={{
@@ -1095,7 +1099,7 @@ const TeamChat = () => {
           justifyContent: 'space-between',
           padding: '14px 28px',
           borderBottom: '1px solid var(--border)',
-          backgroundColor: 'var(--bg-surface)',
+          backgroundColor: 'transparent',
           flexShrink: 0,
           position: 'relative',
           zIndex: 2
@@ -1186,7 +1190,7 @@ const TeamChat = () => {
                 <span>Gerenciar Equipe</span>
               </button>
             )}
-            {activeTeam && (
+            {activeTeam && userTeamRole === 'admin' && (
               <button
                 className="btn btn-outline"
                 onClick={handleLeaveTeam}

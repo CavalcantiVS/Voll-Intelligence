@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Copy, Check, Bot, User, Edit2, X } from 'lucide-react';
 
+import styles from '../pages/Chat.module.css';
 const ChatMessage = ({ message, onEdit }) => {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -37,8 +38,8 @@ const ChatMessage = ({ message, onEdit }) => {
   };
 
   return (
-    <div className={`chat-message ${isUser ? 'chat-message--user' : 'chat-message--ai'}`}>
-      <div className="chat-message__avatar">
+    <div className={`${styles.message} ${isUser ? styles.messageUser : styles.messageAi}`}>
+      <div className={styles.messageAvatar}>
         {isUser ? (
           message.sender_avatar ? (
             <img src={message.sender_avatar} alt={message.sender_name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
@@ -49,25 +50,25 @@ const ChatMessage = ({ message, onEdit }) => {
           <Bot size={18} />
         )}
       </div>
-      <div className="chat-message__body">
-        <div className="chat-message__header">
-          <span className="chat-message__sender">
+      <div className={styles.messageBody}>
+        <div className={styles.messageHeader}>
+          <span className={styles.messageSender}>
             {isUser ? (message.sender_name || 'Você') : 'Voll AI'}
           </span>
           {message.created_at && (
-            <span className="chat-message__time">{formatTime(message.created_at)}</span>
+            <span className={styles.messageTime}>{formatTime(message.created_at)}</span>
           )}
         </div>
-        <div className="chat-message__content">
+        <div className={styles.messageContent}>
           {message.file_name && (
-            <div className="chat-message-attachment">
-              <span className="chat-message-attachment-icon">📎</span>
-              <span className="chat-message-attachment-name">{message.file_name}</span>
+            <div className={styles.messageAttachment}>
+              <span className={styles.messageAttachmentIcon}>📎</span>
+              <span className={styles.messageAttachmentName}>{message.file_name}</span>
             </div>
           )}
           
           {isEditing ? (
-            <div className="chat-message__edit-area" style={{ marginTop: '8px' }}>
+            <div className={styles.messageEditArea} style={{ marginTop: '8px' }}>
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
@@ -115,10 +116,10 @@ const ChatMessage = ({ message, onEdit }) => {
         </div>
 
         {!isEditing && (
-          <div className="chat-message__actions message-actions-wrapper" style={{ display: 'flex', gap: '8px', position: 'absolute', right: '16px', bottom: '8px', opacity: 0, transition: 'opacity 0.15s ease' }}>
+          <div className={`${styles.messageActions} ${styles.messageActionsWrapper}`} style={{ display: 'flex', gap: '8px', position: 'absolute', right: '16px', bottom: '8px', opacity: 0, transition: 'opacity 0.15s ease' }}>
             {!isUser && (
               <button 
-                className="chat-message__copy" 
+                className={styles.messageCopy} 
                 onClick={handleCopy} 
                 title="Copiar mensagem"
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', borderRadius: '4px' }}
@@ -128,7 +129,7 @@ const ChatMessage = ({ message, onEdit }) => {
             )}
             {!isUser && onEdit && message.id && (
               <button
-                className="chat-message__copy"
+                className={styles.messageCopy}
                 onClick={() => { setIsEditing(true); setEditContent(message.content); }}
                 title="Editar resposta da IA"
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', borderRadius: '4px' }}
@@ -141,10 +142,10 @@ const ChatMessage = ({ message, onEdit }) => {
       </div>
       
       <style>{`
-        .chat-message:hover .message-actions-wrapper {
+        .message:hover .messageActionsWrapper {
           opacity: 1 !important;
         }
-        .chat-message {
+        .message {
           position: relative;
         }
       `}</style>

@@ -5,6 +5,7 @@ import ChatMessage from '../components/ChatMessage';
 import { useAuth } from '../contexts/AuthContext';
 import TechBackground from '../components/TechBackground';
 
+import styles from './Chat.module.css';
 const BACKEND = 'http://localhost:3001';
 
 const Chat = () => {
@@ -485,10 +486,10 @@ const Chat = () => {
   const personalSessions = useMemo(() => sessions.filter(s => !s.team_id), [sessions]);
 
   return (
-    <div className="chat-page">
+    <div className={styles.chatPage}>
       {/* Sidebar conversas privadas */}
       <div 
-        className="chat-sidebar" 
+        className={styles.sidebar} 
         style={{ 
           display: 'flex', 
           flexDirection: 'column', 
@@ -501,20 +502,20 @@ const Chat = () => {
         }}
       >
         <div style={{ width: '248px', display: 'flex', flexDirection: 'column', height: '100%', flexShrink: 0 }}>
-          <div className="chat-sidebar__header">
+          <div className={styles.sidebarHeader}>
             <h2>Conversas Privadas</h2>
-            <button className="chat-new-btn" onClick={createNewSession} title="Nova conversa">
+            <button className={styles.newBtn} onClick={createNewSession} title="Nova conversa">
               <Plus size={18} />
             </button>
           </div>
 
-          <div className="chat-sidebar__sessions">
+          <div className={styles.sidebarSessions}>
             {loadingSessions ? (
-              <div className="chat-sidebar__loading">
+              <div className={styles.sidebarLoading}>
                 <Loader2 size={20} className="spin" />
               </div>
             ) : personalSessions.length === 0 ? (
-              <div className="chat-sidebar__empty" style={{ padding: '20px 10px' }}>
+              <div className={styles.sidebarEmpty} style={{ padding: '20px 10px' }}>
                 <MessageSquarePlus size={24} style={{ color: 'var(--text-muted)' }} />
                 <p style={{ fontSize: '0.8rem', marginTop: '6px' }}>Nenhuma conversa ainda</p>
               </div>
@@ -522,11 +523,11 @@ const Chat = () => {
               personalSessions.map(session => (
                 <div
                   key={session.id}
-                  className={`chat-session-item ${activeSession?.id === session.id ? 'active' : ''}`}
+                  className={`${styles.sessionItem} ${activeSession?.id === session.id ? styles.sessionItemActive : ''}`}
                   onClick={() => selectSession(session)}
                 >
                   {editingId === session.id ? (
-                    <div className="chat-session-edit" onClick={e => e.stopPropagation()}>
+                    <div className={styles.sessionEdit} onClick={e => e.stopPropagation()}>
                       <input
                         value={editTitle}
                         onChange={e => setEditTitle(e.target.value)}
@@ -538,8 +539,8 @@ const Chat = () => {
                     </div>
                   ) : (
                     <>
-                      <span className="chat-session-item__title">{session.title}</span>
-                      <div className="chat-session-item__actions">
+                      <span className={styles.sessionItemTitle}>{session.title}</span>
+                      <div className={styles.sessionItemActions}>
                         <button onClick={e => startRename(e, session)} title="Renomear">
                           <Edit2 size={14} />
                         </button>
@@ -557,7 +558,7 @@ const Chat = () => {
       </div>
 
       {/* Área Principal do Chat */}
-      <div className="chat-main" style={{ position: 'relative' }}>
+      <div className={styles.main} style={{ position: 'relative' }}>
         {/* Canvas de Fundo Tecnológico */}
         <TechBackground isDark={isDark} />
 
@@ -646,13 +647,13 @@ const Chat = () => {
         </div>
 
         {!activeSession && messages.length === 0 && !isSharedPreview ? (
-          <div className="chat-welcome" style={{ position: 'relative', zIndex: 1 }}>
-            <div className="chat-welcome__icon">
+          <div className={styles.welcome} style={{ position: 'relative', zIndex: 1 }}>
+            <div className={styles.welcomeIcon}>
               <Bot size={48} />
             </div>
             <h1>Olá, sou o Voll AI</h1>
             <p>Assistente corporativo interno da Voll Solutions.<br />Como posso ajudar você hoje?</p>
-            <div className="chat-welcome__suggestions">
+            <div className={styles.welcomeSuggestions}>
               {[
                 'Crie um fluxo de chatbot para suporte técnico via WhatsApp',
                 'Gere uma resposta profissional para cliente insatisfeito',
@@ -661,7 +662,7 @@ const Chat = () => {
               ].map((s, i) => (
                 <button
                   key={i}
-                  className="chat-suggestion"
+                  className={styles.suggestion}
                   onClick={() => setInput(s)}
                 >
                   {s}
@@ -670,18 +671,18 @@ const Chat = () => {
             </div>
           </div>
         ) : (
-          <div className="chat-messages" style={{ position: 'relative', zIndex: 1 }}>
+          <div className={styles.messages} style={{ position: 'relative', zIndex: 1 }}>
             {messages.map((msg, index) => (
               <ChatMessage key={msg.id || msg.created_at || `msg-${index}`} message={msg} onEdit={handleEditMessage} />
             ))}
             {loading && (
-              <div className="chat-message chat-message--ai">
-                <div className="chat-message__avatar"><Bot size={16} /></div>
-                <div className="chat-message__body">
-                  <div className="chat-message__header">
-                    <span className="chat-message__sender">Voll AI</span>
+              <div className={`${styles.message} ${styles.messageAi}`}>
+                <div className={styles.messageAvatar}><Bot size={16} /></div>
+                <div className={styles.messageBody}>
+                  <div className={styles.messageHeader}>
+                    <span className={styles.messageSender}>Voll AI</span>
                   </div>
-                  <div className="chat-typing">
+                  <div className={styles.typing}>
                     <Loader2 size={14} className="spin" />
                     <span>Voll AI está pensando…</span>
                   </div>
@@ -719,17 +720,17 @@ const Chat = () => {
             </button>
           </div>
         ) : (
-          <div className="chat-input-area" style={{ position: 'relative', zIndex: 2 }}>
+          <div className={styles.inputArea} style={{ position: 'relative', zIndex: 2 }}>
             {isListening && (
-              <div className="chat-voice-active-banner">
-                <span className="voice-pulse-dot" />
+              <div className={styles.voiceActiveBanner}>
+                <span className={styles.voicePulseDot} />
                 <span>Ouvindo sua voz... Fale agora!</span>
               </div>
             )}
             {selectedFile && (
-              <div className="chat-file-preview">
-                <span className="chat-file-name">📎 {selectedFile.name}</span>
-                <button className="chat-file-remove" onClick={() => setSelectedFile(null)} title="Remover anexo">
+              <div className={styles.filePreview}>
+                <span className={styles.fileName}>📎 {selectedFile.name}</span>
+                <button className={styles.fileRemove} onClick={() => setSelectedFile(null)} title="Remover anexo">
                   <X size={14} />
                 </button>
               </div>
@@ -740,7 +741,7 @@ const Chat = () => {
             >
               <button 
                 type="button" 
-                className="chat-attach-btn" 
+                className={styles.attachBtn} 
                 onClick={() => fileInputRef.current?.click()} 
                 title="Anexar arquivo (PDF, Imagem, Texto)"
                 disabled={loading}
@@ -772,12 +773,12 @@ const Chat = () => {
                 placeholder={isListening ? "Ouvindo sua voz... Fale agora!" : "Mensagem para o Voll AI... (Enter para enviar, Shift+Enter para nova linha, Ctrl+V para colar imagem)"}
                 rows={1}
                 disabled={loading}
-                className="chat-input"
+                className={styles.input}
                 style={{ paddingLeft: '8px' }}
               />
               <button
                 type="submit"
-                className="chat-send-btn"
+                className={styles.sendBtn}
                 disabled={!input.trim() || loading}
                 title="Enviar"
               >
@@ -786,12 +787,12 @@ const Chat = () => {
             </form>
 
             {hasSensitiveData ? (
-              <p className="chat-input-warn-hint">
+              <p className={styles.inputWarnHint}>
                 <ShieldAlert size={13} />
                 Nota: Lembre-se de não compartilhar dados pessoais de clientes.
               </p>
             ) : (
-              <p className="chat-disclaimer">
+              <p className={styles.disclaimer}>
                 Voll AI pode cometer erros. Dados sensíveis são automaticamente mascarados antes do envio.
               </p>
             )}
