@@ -286,6 +286,24 @@
   padding: 6px 0;
   align-items: flex-start;
   max-width: 100%;
+  animation: sprout 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transform-origin: bottom left;
+}
+
+.messageUser {
+  flex-direction: row-reverse;
+  transform-origin: bottom right;
+}
+
+@keyframes sprout {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .messageUser {
@@ -356,7 +374,7 @@
 
 .messageContent {
   background-color: var(--bg-surface);
-  border-radius: 0 12px 12px 12px;
+  border-radius: 4px 18px 18px 18px;
   padding: 11px 15px;
   box-shadow: var(--shadow-xs);
   font-size: 0.9rem;
@@ -368,7 +386,7 @@
 .messageUser .messageContent {
   background-color: var(--voll-red);
   color: #fff;
-  border-radius: 12px 0 12px 12px;
+  border-radius: 18px 4px 18px 18px;
   border-color: transparent;
   box-shadow: none;
 }
@@ -901,4 +919,18 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+
+.sidebarEmpty svg {
+  color: var(--border-focus);
+  opacity: 0.5;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.05));
+  transform: scale(1.2);
+  margin-bottom: 12px;
+}
+
+[data-theme='dark'] .sidebarEmpty svg {
+  color: var(--text-muted);
+  opacity: 0.3;
 }
