@@ -38,6 +38,34 @@ const ChartTooltip = ({ active, payload, label }) => {
   );
 };
 
+/* ── Componente de Contador Animado ────────────────────────────────── */
+const AnimatedCounter = ({ value, duration = 1200 }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTime = null;
+    let animationFrame;
+
+    const animate = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = timestamp - startTime;
+      const percentage = Math.min(progress / duration, 1);
+      
+      const easeOut = 1 - Math.pow(1 - percentage, 3);
+      setCount(Math.floor(easeOut * value));
+      
+      if (percentage < 1) {
+        animationFrame = requestAnimationFrame(animate);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [value, duration]);
+
+  return <>{count}</>;
+};
+
 /* ── Componentes skeleton ────────────────────────────────────── */
 const StatSkeleton = () => (
   <div className="sk-stat-card">
@@ -168,7 +196,7 @@ const Dashboard = () => {
               <div className={`stat-icon ${s.variant}`}>{s.icon}</div>
               <div className="stat-info">
                 <h3>{s.label}</h3>
-                <p>{s.value}</p>
+                <p><AnimatedCounter value={s.value} /></p>
               </div>
             </div>
           ))}

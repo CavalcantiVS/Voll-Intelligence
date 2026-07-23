@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation, useOutlet } from 'react-router-dom';
 import {
   LayoutDashboard,
   MessagesSquare,
@@ -18,7 +18,9 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import PageTransition from './PageTransition';
 import styles from './Layout.module.css';
 
 /* ----------------------------------------------------------------
@@ -322,6 +324,24 @@ const Header = ({ isDarkMode, toggleTheme }) => {
 };
 
 /* ----------------------------------------------------------------
+   Animated Outlet (Framer Motion)
+---------------------------------------------------------------- */
+const AnimatedOutlet = () => {
+  const location = useLocation();
+  const element = useOutlet();
+
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      {element ? (
+        <PageTransition key={location.pathname}>
+          {React.cloneElement(element, { key: location.pathname })}
+        </PageTransition>
+      ) : null}
+    </AnimatePresence>
+  );
+};
+
+/* ----------------------------------------------------------------
    Layout
 ---------------------------------------------------------------- */
 const Layout = () => {
@@ -376,7 +396,7 @@ const Layout = () => {
       <div className={styles.mainContent}>
         <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
         <div className={`${styles.pageContent} ${isChatPage ? styles.chatPageContainer : ''}`}>
-          <Outlet />
+          <AnimatedOutlet />
         </div>
       </div>
     </div>

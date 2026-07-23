@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, LogIn, Eye, EyeOff, AlertCircle, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import styles from './Login.module.css';
 
 // Ícone SVG da Microsoft
 const MicrosoftIcon = () => (
@@ -78,30 +79,30 @@ const Login = () => {
   };
 
   return (
-    <div className="login-page">
-      <div className="login-card">
+    <div className={styles.loginPage}>
+      <div className={styles.loginCard}>
 
         {/* Logo */}
-        <div className="login-logo">
-          <img src="/images/RemoveFundo Icon.png" alt="Voll Logo" className="login-logo__img" />
-          <div className="login-logo__text">
-            <span className="login-logo__brand">Voll Intelligence</span>
-            <span className="login-logo__sub">Plataforma de Atendimento</span>
+        <div className={styles.loginLogo}>
+          <img src="/images/RemoveFundo Icon.png" alt="Voll Logo" className={styles.loginLogoImg} />
+          <div className={styles.loginLogoText}>
+            <span className={styles.loginLogoBrand}>Voll Intelligence</span>
+            <span className={styles.loginLogoSub}>Plataforma de Atendimento</span>
           </div>
         </div>
 
         {/* Divisor */}
-        <div className="login-divider" />
+        <div className={styles.loginDivider} />
 
         {/* Cabeçalho */}
-        <div className="login-heading">
+        <div className={styles.loginHeading}>
           <h1>Bem-vindo de volta</h1>
           <p>Acesse sua conta corporativa para continuar.</p>
         </div>
 
         {/* Banner de erro */}
         {error && (
-          <div className="login-error">
+          <div className={styles.loginError}>
             <AlertCircle size={16} />
             <span>{error}</span>
           </div>
@@ -110,13 +111,13 @@ const Login = () => {
         {/* ── Botão Principal: Microsoft SSO ── */}
         <button
           type="button"
-          className="login-microsoft-btn"
+          className={styles.loginMicrosoftBtn}
           onClick={handleMicrosoftLogin}
           disabled={msLoading || loading}
         >
           {msLoading ? (
             <>
-              <span className="login-spinner" />
+              <span className={styles.loginSpinner} />
               Conectando à Microsoft…
             </>
           ) : (
@@ -127,19 +128,19 @@ const Login = () => {
           )}
         </button>
 
-        <p className="login-ms-hint">
+        <p className={styles.loginMsHint}>
           Use o mesmo e-mail do Microsoft Teams e Office 365
         </p>
 
         {/* ── Separador ── */}
-        <div className="login-separator">
+        <div className={styles.loginSeparator}>
           <span>ou</span>
         </div>
 
         {/* ── Toggle para login tradicional ── */}
         <button
           type="button"
-          className="login-traditional-toggle"
+          className={styles.loginTraditionalToggle}
           onClick={() => setShowTraditional((v) => !v)}
         >
           Entrar com E-mail e Senha
@@ -151,11 +152,11 @@ const Login = () => {
 
         {/* ── Formulário tradicional (colapsável) ── */}
         {showTraditional && (
-          <form className="login-form" onSubmit={handleSubmit} noValidate style={{ marginTop: '12px' }}>
-            <div className="login-field">
+          <form className={styles.loginForm} onSubmit={handleSubmit} noValidate style={{ marginTop: '12px' }}>
+            <div className={styles.loginField}>
               <label htmlFor="login-email">E-mail Corporativo</label>
-              <div className="login-input-wrap">
-                <Mail size={16} className="login-input-icon" />
+              <div className={styles.loginInputWrap}>
+                <Mail size={16} className={styles.loginInputIcon} />
                 <input
                   id="login-email"
                   type="email"
@@ -168,10 +169,10 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="login-field">
+            <div className={styles.loginField}>
               <label htmlFor="login-password">Senha</label>
-              <div className="login-input-wrap">
-                <Lock size={16} className="login-input-icon" />
+              <div className={styles.loginInputWrap}>
+                <Lock size={16} className={styles.loginInputIcon} />
                 <input
                   id="login-password"
                   type={showPass ? 'text' : 'password'}
@@ -183,7 +184,7 @@ const Login = () => {
                 />
                 <button
                   type="button"
-                  className="login-eye"
+                  className={styles.loginEye}
                   onClick={() => setShowPass((v) => !v)}
                   tabIndex={-1}
                   aria-label={showPass ? 'Ocultar senha' : 'Mostrar senha'}
@@ -193,10 +194,10 @@ const Login = () => {
               </div>
             </div>
 
-            <button type="submit" className="login-submit" disabled={loading}>
+            <button type="submit" className={styles.loginSubmit} disabled={loading}>
               {loading ? (
                 <>
-                  <span className="login-spinner" />
+                  <span className={styles.loginSpinner} />
                   Verificando…
                 </>
               ) : (
@@ -210,7 +211,7 @@ const Login = () => {
         )}
 
         {/* Dica do rodapé */}
-        <p className="login-hint">
+        <p className={styles.loginHint}>
           Problemas de acesso? Fale com o time de TI da Voll.
         </p>
       </div>
