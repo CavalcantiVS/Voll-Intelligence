@@ -768,3 +768,137 @@
   text-align: center;
   margin-top: 8px;
 }
+
+/* ============================================================
+   FOLDERS (Chat Grouping)
+   ============================================================ */
+.folderContainer {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 4px;
+}
+
+.folderHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  transition: background-color 0.15s ease, color 0.15s ease;
+  user-select: none;
+}
+
+.folderHeader:hover {
+  background-color: var(--bg-subtle);
+  color: var(--text-primary);
+}
+
+.folderHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.folderIcon {
+  color: var(--text-muted);
+}
+
+.folderHeader:hover .folderIcon {
+  color: var(--voll-red);
+}
+
+.folderName {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folderDeleteBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.folderHeader:hover .folderDeleteBtn {
+  opacity: 1;
+}
+
+.folderDeleteBtn:hover {
+  background-color: rgba(224,8,46,0.1);
+  color: var(--voll-red);
+}
+
+.folderContent {
+  display: flex;
+  flex-direction: column;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+  margin-left: 18px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  gap: 2px;
+}
+
+.folderEmpty {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 8px 12px;
+}
+
+.folderCreateInput {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: var(--bg-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+
+.folderCreateInput input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.folderCreateInput button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.folderCreateInput button:hover {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.unassignedSessions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

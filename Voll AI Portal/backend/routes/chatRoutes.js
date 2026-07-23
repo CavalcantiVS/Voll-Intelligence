@@ -247,7 +247,7 @@ router.get('/sessions', async (req, res) => {
     const userId = req.userId;
 
     const result = await pool.query(
-      `SELECT DISTINCT s.id, s.title, s.created_at, s.updated_at, s.team_id, e.nome as team_name
+      `SELECT DISTINCT s.id, s.title, s.created_at, s.updated_at, s.team_id, s.folder_id, e.nome as team_name
        FROM chat_sessions s
        LEFT JOIN equipes e ON s.team_id = e.id
        LEFT JOIN membros_equipe m ON e.id = m.equipe_id
@@ -261,6 +261,67 @@ router.get('/sessions', async (req, res) => {
   } catch (error) {
     console.error('[chatRoutes] Error listing sessions:', error);
     res.status(500).json({ error: 'Failed to list sessions' });
+  }
+});
+
+// PUT /api/chat/sessions/:id/folder — move a sessão para uma pasta (ou null)
+router.put('/sessions/:id/folder', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { folderId } = req.body;
+    const userId = req.userId;
+
+    // Verificar se a sessão é do usuário
+    const checkSession = await pool.query(`SELECT id FROM chat_sessions WHERE id = $1 AND user_id = $2`, [id, userId]);
+    if (checkSession.rows.length === 0) return res.status(404).json({ error: 'Conversa não encontrada.' });
+
+    await pool.query(`UPDATE chat_sessions SET folder_id = $1 WHERE id = $2`, [folderId || null, id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[chatRoutes] Error moving session:', err);
+    res.status(500).json({ error: 'Failed to move session' });
+  }
+});
+
+// GET /api/chat/folders — lista pastas do usuário
+router.get('/folders', async (req, res) => {
+  try {
+    const userId = req.userId;
+    const result = await pool.query(`SELECT id, name, created_at FROM chat_folders WHERE user_id = $1 ORDER BY created_at ASC`, [userId]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('[chatRoutes] Error listing folders:', err);
+    res.status(500).json({ error: 'Failed to list folders' });
+  }
+});
+
+// POST /api/chat/folders — cria uma pasta
+router.post('/folders', async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name is required' });
+
+    const result = await pool.query(`INSERT INTO chat_folders (user_id, name) VALUES ($1, $2) RETURNING id, name, created_at`, [userId, name]);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('[chatRoutes] Error creating folder:', err);
+    res.status(500).json({ error: 'Failed to create folder' });
+  }
+});
+
+// DELETE /api/chat/folders/:id — exclui uma pasta
+router.delete('/folders/:id', async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { id } = req.params;
+    
+    // ON DELETE SET NULL na tabela já removerá das conversas
+    await pool.query(`DELETE FROM chat_folders WHERE id = $1 AND user_id = $2`, [id, userId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[chatRoutes] Error deleting folder:', err);
+    res.status(500).json({ error: 'Failed to delete folder' });
   }
 });
 

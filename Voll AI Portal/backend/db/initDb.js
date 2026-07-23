@@ -30,13 +30,22 @@ const initDb = async () => {
 
       ALTER TABLE prompt_history ADD COLUMN IF NOT EXISTS form_data JSONB;
 
+      CREATE TABLE IF NOT EXISTS chat_folders (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE TABLE IF NOT EXISTS chat_sessions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID REFERENCES users(id),
         title VARCHAR(255) DEFAULT 'Nova conversa',
+        folder_id UUID REFERENCES chat_folders(id) ON DELETE SET NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
 
       CREATE TABLE IF NOT EXISTS chat_messages (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -52,6 +61,7 @@ const initDb = async () => {
       ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_name VARCHAR(255);
       ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_content TEXT;
       ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_mimetype VARCHAR(100);
+      ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS folder_id UUID REFERENCES chat_folders(id) ON DELETE SET NULL;
     `);
 
     // Tabelas de Shared Workspaces (Espaços de Equipe)

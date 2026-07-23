@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert, Paperclip, Mic, MicOff, Share2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert, Paperclip, Mic, MicOff, Share2, PanelLeftClose, PanelLeftOpen, Folder, FolderOpen, FolderPlus, ChevronRight, ChevronDown } from 'lucide-react';
 import ChatMessage from '../components/ChatMessage';
 import { useAuth } from '../contexts/AuthContext';
 import TechBackground from '../components/TechBackground';
@@ -33,6 +33,12 @@ const Chat = () => {
   const [editTitle, setEditTitle] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
 
+  // === Pastas ===
+  const [folders, setFolders] = useState([]);
+  const [expandedFolders, setExpandedFolders] = useState({});
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+
   const [isChatSidebarCollapsed, setIsChatSidebarCollapsed] = useState(false);
   const [isSharedPreview, setIsSharedPreview] = useState(false);
   const [sharedSessionInfo, setSharedSessionInfo] = useState(null);
@@ -59,6 +65,7 @@ const Chat = () => {
       loadSharedPreview(shareId);
     } else {
       loadSessions();
+      loadFolders();
     }
   }, [selectSessionId, token]);
 
@@ -149,7 +156,6 @@ const Chat = () => {
             return;
           }
         }
-        // Filtrar sessões pessoais (sem team_id) para selecionar a primeira
         const personal = data.filter(s => !s.team_id);
         if (personal.length > 0 && !activeSession) {
           selectSession(personal[0]);
@@ -162,6 +168,75 @@ const Chat = () => {
     } finally {
       setLoadingSessions(false);
     }
+  };
+
+  // === Funções de Pastas ===
+  const loadFolders = async () => {
+    try {
+      const res = await fetch(`${BACKEND}/api/chat/folders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setFolders(data);
+        const initExpanded = {};
+        data.forEach(f => { initExpanded[f.id] = false; });
+        setExpandedFolders(prev => ({ ...initExpanded, ...prev }));
+      }
+    } catch (err) {
+      console.error('Failed to load folders:', err);
+    }
+  };
+
+  const createFolder = async () => {
+    if (!newFolderName.trim()) return;
+    try {
+      const res = await fetch(`${BACKEND}/api/chat/folders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: newFolderName })
+      });
+      if (!res.ok) throw new Error('Falha ao criar pasta');
+      const newFolder = await res.json();
+      setFolders(prev => [...prev, newFolder]);
+      setExpandedFolders(prev => ({ ...prev, [newFolder.id]: true }));
+      setIsCreatingFolder(false);
+      setNewFolderName('');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteFolder = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm('Excluir esta pasta? As conversas dentro dela NÃO serão apagadas.')) return;
+    try {
+      await fetch(`${BACKEND}/api/chat/folders/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setFolders(prev => prev.filter(f => f.id !== id));
+      setSessions(prev => prev.map(s => s.folder_id === id ? { ...s, folder_id: null } : s));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const moveSessionToFolder = async (sessionId, folderId) => {
+    try {
+      await fetch(`${BACKEND}/api/chat/sessions/${sessionId}/folder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ folderId })
+      });
+      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, folder_id: folderId } : s));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const toggleFolder = (id) => {
+    setExpandedFolders(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const selectSession = async (session) => {
@@ -485,6 +560,62 @@ const Chat = () => {
   // Excluir chats de equipe desta tela completamente
   const personalSessions = useMemo(() => sessions.filter(s => !s.team_id), [sessions]);
 
+  // Agrupar sessões por pasta
+  const sessionsByFolder = useMemo(() => {
+    const grouped = { unassigned: [] };
+    folders.forEach(f => { grouped[f.id] = []; });
+    personalSessions.forEach(s => {
+      if (s.folder_id && grouped[s.folder_id]) {
+        grouped[s.folder_id].push(s);
+      } else {
+        grouped.unassigned.push(s);
+      }
+    });
+    return grouped;
+  }, [personalSessions, folders]);
+
+  const onDragOver = (e) => e.preventDefault();
+  const onDrop = (e, folderId) => {
+    e.preventDefault();
+    const sessionId = e.dataTransfer.getData('sessionId');
+    if (sessionId) moveSessionToFolder(sessionId, folderId);
+  };
+
+  const renderSessionItem = (session) => (
+    <div
+      key={session.id}
+      draggable
+      onDragStart={(e) => e.dataTransfer.setData('sessionId', session.id)}
+      className={`${styles.sessionItem} ${activeSession?.id === session.id ? styles.sessionItemActive : ''}`}
+      onClick={() => selectSession(session)}
+    >
+      {editingId === session.id ? (
+        <div className={styles.sessionEdit} onClick={e => e.stopPropagation()}>
+          <input
+            value={editTitle}
+            onChange={e => setEditTitle(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && saveRename(session.id)}
+            autoFocus
+          />
+          <button onClick={() => saveRename(session.id)}><Check size={14} /></button>
+          <button onClick={() => setEditingId(null)}><X size={14} /></button>
+        </div>
+      ) : (
+        <>
+          <span className={styles.sessionItemTitle}>{session.title}</span>
+          <div className={styles.sessionItemActions}>
+            <button onClick={e => startRename(e, session)} title="Renomear">
+              <Edit2 size={14} />
+            </button>
+            <button onClick={e => deleteSession(e, session.id)} title="Excluir">
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <div className={styles.chatPage}>
       {/* Sidebar conversas privadas */}
@@ -504,54 +635,80 @@ const Chat = () => {
         <div style={{ width: '248px', display: 'flex', flexDirection: 'column', height: '100%', flexShrink: 0 }}>
           <div className={styles.sidebarHeader}>
             <h2>Conversas Privadas</h2>
-            <button className={styles.newBtn} onClick={createNewSession} title="Nova conversa">
-              <Plus size={18} />
-            </button>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button className={styles.newBtn} onClick={() => setIsCreatingFolder(true)} title="Nova pasta" style={{ background: 'transparent', color: 'var(--text-secondary)' }}>
+                <FolderPlus size={16} />
+              </button>
+              <button className={styles.newBtn} onClick={createNewSession} title="Nova conversa">
+                <Plus size={18} />
+              </button>
+            </div>
           </div>
 
-          <div className={styles.sidebarSessions}>
+          <div className={styles.sidebarSessions} onDragOver={onDragOver} onDrop={(e) => onDrop(e, null)}>
             {loadingSessions ? (
               <div className={styles.sidebarLoading}>
                 <Loader2 size={20} className="spin" />
               </div>
-            ) : personalSessions.length === 0 ? (
-              <div className={styles.sidebarEmpty} style={{ padding: '20px 10px' }}>
-                <MessageSquarePlus size={24} style={{ color: 'var(--text-muted)' }} />
-                <p style={{ fontSize: '0.8rem', marginTop: '6px' }}>Nenhuma conversa ainda</p>
-              </div>
             ) : (
-              personalSessions.map(session => (
-                <div
-                  key={session.id}
-                  className={`${styles.sessionItem} ${activeSession?.id === session.id ? styles.sessionItemActive : ''}`}
-                  onClick={() => selectSession(session)}
-                >
-                  {editingId === session.id ? (
-                    <div className={styles.sessionEdit} onClick={e => e.stopPropagation()}>
-                      <input
-                        value={editTitle}
-                        onChange={e => setEditTitle(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && saveRename(session.id)}
-                        autoFocus
-                      />
-                      <button onClick={() => saveRename(session.id)}><Check size={14} /></button>
-                      <button onClick={() => setEditingId(null)}><X size={14} /></button>
+              <>
+                {isCreatingFolder && (
+                  <div className={styles.folderCreateInput}>
+                    <input
+                      autoFocus
+                      placeholder="Nome da pasta..."
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') createFolder();
+                        if (e.key === 'Escape') { setIsCreatingFolder(false); setNewFolderName(''); }
+                      }}
+                    />
+                    <div style={{ display: 'flex' }}>
+                      <button onClick={createFolder}><Check size={14} /></button>
+                      <button onClick={() => { setIsCreatingFolder(false); setNewFolderName(''); }}><X size={14} /></button>
                     </div>
-                  ) : (
-                    <>
-                      <span className={styles.sessionItemTitle}>{session.title}</span>
-                      <div className={styles.sessionItemActions}>
-                        <button onClick={e => startRename(e, session)} title="Renomear">
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={e => deleteSession(e, session.id)} title="Excluir">
-                          <Trash2 size={14} />
-                        </button>
+                  </div>
+                )}
+
+                {folders.map(folder => (
+                  <div key={folder.id} className={styles.folderContainer}>
+                    <div
+                      className={styles.folderHeader}
+                      onClick={() => toggleFolder(folder.id)}
+                      onDragOver={onDragOver}
+                      onDrop={(e) => { e.stopPropagation(); onDrop(e, folder.id); }}
+                    >
+                      <div className={styles.folderHeaderLeft}>
+                        {expandedFolders[folder.id] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        {expandedFolders[folder.id] ? <FolderOpen size={14} className={styles.folderIcon} /> : <Folder size={14} className={styles.folderIcon} />}
+                        <span className={styles.folderName}>{folder.name}</span>
                       </div>
-                    </>
-                  )}
-                </div>
-              ))
+                      <button className={styles.folderDeleteBtn} onClick={(e) => deleteFolder(e, folder.id)} title="Excluir pasta">
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                    {expandedFolders[folder.id] && (
+                      <div className={styles.folderContent}>
+                        {(sessionsByFolder[folder.id] || []).length === 0 ? (
+                          <div className={styles.folderEmpty}>Solte conversas aqui</div>
+                        ) : (
+                          (sessionsByFolder[folder.id] || []).map(renderSessionItem)
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {sessionsByFolder.unassigned.length === 0 && folders.length === 0 && !isCreatingFolder ? (
+                  <div className={styles.sidebarEmpty} style={{ padding: '20px 10px' }}>
+                    <MessageSquarePlus size={24} style={{ color: 'var(--text-muted)' }} />
+                    <p style={{ fontSize: '0.8rem', marginTop: '6px' }}>Nenhuma conversa ainda</p>
+                  </div>
+                ) : (
+                  sessionsByFolder.unassigned.map(renderSessionItem)
+                )}
+              </>
             )}
           </div>
         </div>
