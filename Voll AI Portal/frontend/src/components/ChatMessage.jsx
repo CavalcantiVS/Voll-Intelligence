@@ -3,7 +3,45 @@ import ReactMarkdown from 'react-markdown';
 import { Copy, Check, Bot, User, Edit2, X } from 'lucide-react';
 
 import styles from '../pages/Chat.module.css';
-const ChatMessage = ({ message, onEdit }) => {
+
+const CodeBlock = ({ node, inline, className, children, ...props }) => {
+  const match = /language-(w+)/.exec(className || '');
+  const lang = match ? match[1] : '';
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (!inline && match) {
+    return (
+      <div className={styles.codeBlockWrapper} style={{ borderRadius: '8px', overflow: 'hidden', margin: '12px 0', border: '1px solid var(--border)' }}>
+        <div className={styles.codeBlockHeader} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: 'var(--bg-subtle)', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#FF5F56' }} />
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#FFBD2E' }} />
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#27C93F' }} />
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang}</span>
+          <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.75rem' }}>
+            {copied ? <Check size={12} /> : <Copy size={12} />}
+            {copied ? 'Copiado' : 'Copiar'}
+          </button>
+        </div>
+        <pre style={{ margin: 0, padding: '12px', backgroundColor: 'rgba(0,0,0,0.03)', overflowX: 'auto' }}>
+          <code className={className} {...props}>
+            {children}
+          </code>
+        </pre>
+      </div>
+    );
+  }
+  return <code className={className} {...props} style={{ backgroundColor: 'var(--bg-subtle)', padding: '2px 4px', borderRadius: '4px', fontSize: '0.85em' }}>{children}</code>;
+};
+
+const ChatMessage = ({ message, onEdit, isOnline }) => {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
@@ -39,7 +77,7 @@ const ChatMessage = ({ message, onEdit }) => {
 
   return (
     <div className={`${styles.message} ${isUser ? styles.messageUser : styles.messageAi}`}>
-      <div className={styles.messageAvatar}>
+      <div className={styles.messageAvatar} style={isOnline ? { boxShadow: '0 0 0 2px var(--success, #10B981)', border: '2px solid var(--bg-surface)' } : {}}>
         {isUser ? (
           message.sender_avatar ? (
             <img src={message.sender_avatar} alt={message.sender_name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
@@ -111,7 +149,7 @@ const ChatMessage = ({ message, onEdit }) => {
           ) : isUser ? (
             <p>{message.content}</p>
           ) : (
-            <ReactMarkdown>{message.content}</ReactMarkdown>
+            <ReactMarkdown components={{ code: CodeBlock }}>{message.content}</ReactMarkdown>
           )}
         </div>
 

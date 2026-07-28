@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert, Paperclip, Mic, MicOff, Share2, Users, Settings, User, CheckCircle2, XCircle, PanelLeftClose, PanelLeftOpen, Cpu, Code, Database, Shield, BarChart2, Globe, Zap, Briefcase, LogOut } from 'lucide-react';
 import ChatMessage from '../components/ChatMessage';
+import TypingIndicator from '../components/TypingIndicator';
+import { useToast } from '../contexts/ToastContext';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { io } from 'socket.io-client';
 import TechBackground from '../components/TechBackground';
@@ -288,7 +291,7 @@ const TeamChat = () => {
       setInvitations(prev => prev.filter(i => i.membership_id !== invite.membership_id));
       await loadTeams();
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -305,7 +308,7 @@ const TeamChat = () => {
       
       setInvitations(prev => prev.filter(i => i.membership_id !== invite.membership_id));
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -332,7 +335,7 @@ const TeamChat = () => {
       setShowCreateTeamModal(false);
       selectTeam(data);
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -340,7 +343,7 @@ const TeamChat = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert('A imagem deve ter no máximo 2MB.');
+        toast.error('A imagem deve ter no máximo 2MB.');
         return;
       }
       const reader = new FileReader();
@@ -355,7 +358,7 @@ const TeamChat = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert('A imagem deve ter no máximo 2MB.');
+        toast.error('A imagem deve ter no máximo 2MB.');
         return;
       }
       const reader = new FileReader();
@@ -394,7 +397,7 @@ const TeamChat = () => {
       }
     } catch (err) {
       console.error(err);
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -429,9 +432,9 @@ const TeamChat = () => {
       // Atualiza estado local
       setTeams(prev => prev.map(t => t.id === activeTeam.id ? { ...t, nome: data.nome, avatar: data.avatar } : t));
       setActiveTeam(prev => ({ ...prev, nome: data.nome, avatar: data.avatar }));
-      alert('Configurações atualizadas com sucesso!');
+      toast.error('Configurações atualizadas com sucesso!');
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -449,7 +452,7 @@ const TeamChat = () => {
         throw new Error(data.error || 'Erro ao excluir equipe.');
       }
       
-      alert('Equipe excluída com sucesso!');
+      toast.error('Equipe excluída com sucesso!');
       setShowManageModal(false);
       
       // Remove equipe da lista e reseta seleção
@@ -463,7 +466,7 @@ const TeamChat = () => {
         setMessages([]);
       }
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -546,7 +549,7 @@ const TeamChat = () => {
       setTimeout(() => inputRef.current?.focus(), 100);
     } catch (err) {
       console.error(err);
-      alert('Erro ao iniciar conversa de equipe.');
+      toast.error('Erro ao iniciar conversa de equipe.');
     } finally {
       setLoading(false);
     }
@@ -650,7 +653,7 @@ const TeamChat = () => {
       }
     } catch (err) {
       console.error('Failed to send team message:', err);
-      alert('Erro ao enviar mensagem: ' + err.message);
+      toast.error('Erro ao enviar mensagem: ' + err.message);
     } finally {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -674,7 +677,7 @@ const TeamChat = () => {
       }
       // UI atualiza automaticamente via evento de WebSocket 'message_edited' transmitido para a sala
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -689,7 +692,7 @@ const TeamChat = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('O arquivo deve ter no máximo 5MB.');
+        toast.error('O arquivo deve ter no máximo 5MB.');
         return;
       }
       setSelectedFile(file);
@@ -705,7 +708,7 @@ const TeamChat = () => {
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Seu navegador não suporta reconhecimento de voz.");
+      toast.error("Seu navegador não suporta reconhecimento de voz.");
       return;
     }
 
@@ -1218,7 +1221,7 @@ const TeamChat = () => {
             ) : (
               <div className="chat-messages" style={{ position: 'relative', zIndex: 1 }}>
                 {messages.map((msg, index) => (
-                  <ChatMessage key={msg.id || msg.created_at || `msg-${index}`} message={msg} onEdit={handleEditMessage} />
+                  <ChatMessage key={msg.id || msg.created_at || `msg-${index}`} message={msg} onEdit={handleEditMessage} isOnline={onlineMembers.includes(msg.sender_id)} />
                 ))}
                 {loading && (
                   <div className="chat-message chat-message--ai">
@@ -1634,9 +1637,9 @@ const TeamChat = () => {
                             setSearchedUser(null);
                             setSearchEmail('');
                             setSearchStatus(null);
-                            alert('Convite enviado com sucesso! O colaborador receberá um alerta para ingressar na equipe.');
+                            toast.error('Convite enviado com sucesso! O colaborador receberá um alerta para ingressar na equipe.');
                           } catch (err) {
-                            alert(err.message);
+                            toast.error(err.message);
                           }
                         }}
                       >
@@ -1723,7 +1726,7 @@ const TeamChat = () => {
                                   }
                                   setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, papel: newRole } : m));
                                 } catch (err) {
-                                  alert(err.message);
+                                  toast.error(err.message);
                                 }
                               }}
                             >
@@ -1749,7 +1752,7 @@ const TeamChat = () => {
                                   }
                                   setTeamMembers(prev => prev.filter(m => m.id !== member.id));
                                 } catch (err) {
-                                  alert(err.message);
+                                  toast.error(err.message);
                                 }
                               }}
                             >

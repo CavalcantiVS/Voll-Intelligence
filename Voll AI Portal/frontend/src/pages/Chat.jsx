@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert, Paperclip, Mic, MicOff, Share2, PanelLeftClose, PanelLeftOpen, Folder, FolderOpen, FolderPlus, ChevronRight, ChevronDown } from 'lucide-react';
 import ChatMessage from '../components/ChatMessage';
+import TypingIndicator from '../components/TypingIndicator';
+import { useToast } from '../contexts/ToastContext';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import TechBackground from '../components/TechBackground';
 
@@ -97,7 +100,7 @@ const Chat = () => {
       }
     } catch (err) {
       console.error(err);
-      alert(err.message || 'Erro ao carregar pré-visualização compartilhada.');
+      toast.error(err.message || 'Erro ao carregar pré-visualização compartilhada.');
       setIsSharedPreview(false);
       loadSessions();
     } finally {
@@ -125,7 +128,7 @@ const Chat = () => {
       selectSession(clonedSession);
     } catch (err) {
       console.error(err);
-      alert(err.message || 'Erro ao importar conversa.');
+      toast.error(err.message || 'Erro ao importar conversa.');
     } finally {
       setLoading(false);
     }
@@ -274,7 +277,7 @@ const Chat = () => {
       setTimeout(() => inputRef.current?.focus(), 100);
     } catch (err) {
       console.error(err);
-      alert('Erro ao iniciar conversa.');
+      toast.error('Erro ao iniciar conversa.');
     } finally {
       setLoading(false);
     }
@@ -339,7 +342,7 @@ const Chat = () => {
       }
       setMessages(prev => prev.map(m => m.id === messageId ? { ...m, content: newContent } : m));
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -382,6 +385,7 @@ const Chat = () => {
       created_at: new Date().toISOString() 
     };
     setMessages(prev => [...prev, userMessage]);
+    setIsTyping(true);
 
     try {
       const formData = new FormData();
@@ -406,6 +410,7 @@ const Chat = () => {
       }
       
       const aiMessage = await res.json();
+      setIsTyping(false);
       const fullText = aiMessage.content;
       const newMessage = {
         role: 'assistant',
@@ -473,7 +478,7 @@ const Chat = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('O arquivo deve ter no máximo 5MB.');
+        toast.error('O arquivo deve ter no máximo 5MB.');
         return;
       }
       setSelectedFile(file);
@@ -489,7 +494,7 @@ const Chat = () => {
         const file = items[i].getAsFile();
         if (file) {
           if (file.size > 5 * 1024 * 1024) {
-            alert('A imagem deve ter no máximo 5MB.');
+            toast.error('A imagem deve ter no máximo 5MB.');
             return;
           }
           setSelectedFile(file);
@@ -509,7 +514,7 @@ const Chat = () => {
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Seu navegador não suporta reconhecimento de voz.");
+      toast.error("Seu navegador não suporta reconhecimento de voz.");
       return;
     }
 
@@ -846,6 +851,7 @@ const Chat = () => {
                 </div>
               </div>
             )}
+            {isTyping && <TypingIndicator />}
             <div ref={messagesEndRef} />
           </div>
         )}

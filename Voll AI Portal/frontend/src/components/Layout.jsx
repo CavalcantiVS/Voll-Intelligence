@@ -346,6 +346,13 @@ const AnimatedOutlet = () => {
 ---------------------------------------------------------------- */
 const Layout = () => {
   const [isDarkMode, setIsDarkMode] = React.useState(false);
+  const [isZenMode, setIsZenMode] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleZen = () => setIsZenMode(prev => !prev);
+    window.addEventListener('toggle-zen-mode', handleZen);
+    return () => window.removeEventListener('toggle-zen-mode', handleZen);
+  }, []);
   const location = useLocation();
   const isChatPage = location.pathname === '/chat' || location.pathname === '/teams';
   const isTeamsPage = location.pathname === '/teams';
@@ -392,9 +399,9 @@ const Layout = () => {
 
   return (
     <div className={styles.appContainer}>
-      <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />
+      {!isZenMode && <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />}
       <div className={styles.mainContent}>
-        <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+        {!isZenMode && <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />}
         <div className={`${styles.pageContent} ${isChatPage ? styles.chatPageContainer : ''}`}>
           <AnimatedOutlet />
         </div>
