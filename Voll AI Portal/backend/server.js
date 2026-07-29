@@ -13,6 +13,9 @@ const userRoutes = require('./routes/userRoutes');
 const departmentRoutes = require('./routes/departmentRoutes');
 const authRoutes = require('./routes/authRoutes');
 const teamRoutes = require('./routes/teamRoutes');
+const kanbanRoutes = require('./routes/kanbanRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const { startAutomationRunner } = require('./automationsRunner');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -29,6 +32,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/teams', teamRoutes);
+app.use('/api/kanban', kanbanRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/', (req, res) => {
   res.send('Voll AI Portal Backend Running');
@@ -43,6 +48,9 @@ const io = new Server(server, {
 });
 
 app.set('io', io);
+
+// Inicia o robô de automações passando o io
+startAutomationRunner(io);
 
 // Rastreamento de presença: mapa de teamId -> array de objetos de usuários online
 const onlineUsersByTeam = {};
@@ -94,6 +102,23 @@ io.on('connection', (socket) => {
       onlineUsersByTeam[teamId] = onlineUsersByTeam[teamId].filter(u => u.id !== user.id);
       io.to(teamId).emit('team_online_members', onlineUsersByTeam[teamId]);
     }
+  });
+
+  // Eventos Kanban Multi-board
+  socket.on('join_kanban', (boardId) => {
+    if (!boardId) return;
+    socket.join(`kanban_${boardId}`);
+    console.log(`[Socket] Joined kanban board: ${boardId}`);
+  });
+
+  socket.on('leave_kanban', (boardId) => {
+    if (!boardId) return;
+    socket.leave(`kanban_${boardId}`);
+  });
+
+  socket.on('kanban_update', ({ boardId, type, data }) => {
+    // Broadcast para outros clientes na sala
+    socket.to(`kanban_${boardId}`).emit('kanban_updated', { type, data });
   });
 });
 

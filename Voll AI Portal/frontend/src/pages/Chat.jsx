@@ -13,6 +13,7 @@ const BACKEND = 'http://localhost:3001';
 
 const Chat = () => {
   const { user, token } = useAuth();
+  const toast = useToast();
   const location = useLocation();
   const selectSessionId = location.state?.selectSessionId;
   const [isDark, setIsDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark');
@@ -31,6 +32,7 @@ const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');

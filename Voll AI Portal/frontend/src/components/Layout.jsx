@@ -17,6 +17,8 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
+  KanbanSquare,
+  Bell,
 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,7 +36,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
 
   const checkAccess = (path) => {
     if (!user) return false;
-    if (path === '/' || path === '/profile' || path === '/teams') return true;
+    if (path === '/' || path === '/profile' || path === '/teams' || path === '/kanban') return true;
     if (path === '/users') return isAdmin;
     if (!user.allowed_screens) return true;
     return user.allowed_screens.includes(path);
@@ -49,6 +51,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
   const toolItems = [
     { name: 'Fluxos de Atendimento', path: '/chatbots',    icon: <LayoutTemplate size={18} /> },
     { name: 'Assistente de Redação', path: '/responses',   icon: <Headset        size={18} /> },
+    { name: 'Kanban Board',          path: '/kanban',      icon: <KanbanSquare   size={18} /> },
     { name: 'Automação Interna',     path: '/automations', icon: <Settings       size={18} /> },
     { name: 'Gerador de Documentos', path: '/docs',        icon: <LayoutTemplate size={18} /> },
     { name: 'Refinamento de Textos', path: '/refine',      icon: <Settings       size={18} /> },
@@ -120,8 +123,69 @@ const Header = ({ isDarkMode, toggleTheme }) => {
   const [focused, setFocused] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   const searchRef = useRef(null);
   const dropdownRef = useRef(null);
+  const notifRef = useRef(null);
+
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const res = await fetch('http://localhost:3001/api/notifications', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 30000); // poll every 30s
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const handleReadNotification = async (notif) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!notif.is_read) {
+        await fetch(`http://localhost:3001/api/notifications/${notif.id}/read`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+      }
+      setNotifDropdownOpen(false);
+      if (notif.link) {
+        navigate(notif.link);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleReadAll = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`http://localhost:3001/api/notifications/read-all`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const handleLogout = () => {
     logout();
@@ -149,6 +213,9 @@ const Header = ({ isDarkMode, toggleTheme }) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false);
       }
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setNotifDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -170,6 +237,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
     { name: 'Espaços de Equipe',     path: '/teams',       icon: <Users           size={14} /> },
     { name: 'Fluxos de Atendimento', path: '/chatbots',    icon: <LayoutTemplate size={14} /> },
     { name: 'Assistente de Redação', path: '/responses',   icon: <Headset        size={14} /> },
+    { name: 'Kanban Board',          path: '/kanban',      icon: <KanbanSquare   size={14} /> },
     { name: 'Automação Interna',     path: '/automations', icon: <Settings       size={14} /> },
     { name: 'Gerador de Documentos', path: '/docs',        icon: <LayoutTemplate size={14} /> },
     { name: 'Refinamento de Textos', path: '/refine',      icon: <Settings       size={14} /> },
@@ -263,6 +331,56 @@ const Header = ({ isDarkMode, toggleTheme }) => {
       </div>
 
       <div className={styles.headerActions}>
+        <div className={styles.notificationWrapper} ref={notifRef}>
+          <button 
+            className="btn btn-ghost" 
+            onClick={() => { setNotifDropdownOpen(!notifDropdownOpen); setDropdownOpen(false); }} 
+            title="Notificações"
+            style={{ position: 'relative' }}
+          >
+            <Bell size={17} />
+            {unreadCount > 0 && (
+              <span className={styles.notificationBadge}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+            )}
+          </button>
+          
+          {notifDropdownOpen && (
+            <div className={styles.notificationDropdown}>
+              <div className={styles.notifHeader}>
+                <h3>Notificações</h3>
+                {unreadCount > 0 && (
+                  <button className={styles.notifReadAll} onClick={handleReadAll}>
+                    Marcar todas como lidas
+                  </button>
+                )}
+              </div>
+              <div className={styles.notifList}>
+                {notifications.length === 0 ? (
+                  <div className={styles.notifEmpty}>Sem notificações no momento.</div>
+                ) : (
+                  notifications.map(notif => (
+                    <div 
+                      key={notif.id} 
+                      className={`${styles.notifItem} ${notif.is_read ? styles.notifRead : ''}`}
+                      onClick={() => handleReadNotification(notif)}
+                    >
+                      <div className={styles.notifIcon}>
+                        <Bell size={14} />
+                      </div>
+                      <div className={styles.notifContent}>
+                        <div className={styles.notifTitle}>{notif.title}</div>
+                        <div className={styles.notifMessage}>{notif.message}</div>
+                        <div className={styles.notifTime}>{new Date(notif.created_at).toLocaleDateString()} {new Date(notif.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                      </div>
+                      {!notif.is_read && <div className={styles.notifUnreadDot} />}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         <button className="btn btn-ghost" onClick={toggleTheme} title="Alternar tema" aria-label="Alternar tema">
           {isDarkMode ? <Sun size={17} /> : <Moon size={17} />}
         </button>
@@ -274,7 +392,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
         <div 
           className={styles.userProfile} 
           ref={dropdownRef} 
-          onClick={() => setDropdownOpen(!dropdownOpen)}
+          onClick={() => { setDropdownOpen(!dropdownOpen); setNotifDropdownOpen(false); }}
           style={{ position: 'relative', cursor: 'pointer', userSelect: 'none' }}
         >
           <div className={styles.avatar}>

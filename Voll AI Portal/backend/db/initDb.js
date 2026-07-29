@@ -16,6 +16,16 @@ const initDb = async () => {
         order_index INTEGER DEFAULT 0
       );
 
+      CREATE TABLE IF NOT EXISTS notifications (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        link VARCHAR(255),
+        is_read BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
       
       CREATE TABLE IF NOT EXISTS prompt_history (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -109,6 +119,90 @@ const initDb = async () => {
       INSERT INTO departments (name)
       SELECT name FROM (VALUES ('Atendimento'), ('TI'), ('Financeiro'), ('RH'), ('Comercial'), ('Diretoria')) AS v(name)
       WHERE NOT EXISTS (SELECT 1 FROM departments);
+    `);
+
+    // Tabelas do Kanban Multi-board
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS kanban_boards (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        nome VARCHAR(255) NOT NULL,
+        criador_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        avatar TEXT,
+        background TEXT,
+        tags JSONB DEFAULT '[]'::jsonb,
+        custom_fields JSONB DEFAULT '[]'::jsonb
+      );
+
+      CREATE TABLE IF NOT EXISTS kanban_board_members (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        board_id UUID REFERENCES kanban_boards(id) ON DELETE CASCADE,
+        usuario_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        papel VARCHAR(20) NOT NULL CHECK (papel IN ('admin', 'editor', 'leitor')),
+        status VARCHAR(20) DEFAULT 'pendente',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(board_id, usuario_id)
+      );
+
+      ALTER TABLE kanban_board_members DROP CONSTRAINT IF EXISTS kanban_board_members_status_check;
+      ALTER TABLE kanban_board_members ADD CONSTRAINT kanban_board_members_status_check CHECK (status IN ('pendente', 'aceito', 'solicitado'));
+
+      ALTER TABLE kanban_board_members DROP CONSTRAINT IF EXISTS kanban_board_members_papel_check;
+      ALTER TABLE kanban_board_members ADD CONSTRAINT kanban_board_members_papel_check CHECK (papel IN ('admin', 'editor', 'leitor'));
+      UPDATE kanban_board_members SET papel = 'editor' WHERE papel = 'membro';
+      ALTER TABLE kanban_boards ADD COLUMN IF NOT EXISTS background TEXT;
+      ALTER TABLE kanban_boards ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'::jsonb;
+
+      CREATE TABLE IF NOT EXISTS kanban_columns (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        board_id UUID REFERENCES kanban_boards(id) ON DELETE CASCADE,
+        title VARCHAR(100) NOT NULL,
+        dot_class VARCHAR(50) DEFAULT 'todo',
+        order_index INTEGER DEFAULT 0,
+        wip_limit INTEGER DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS kanban_tasks (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        column_id UUID REFERENCES kanban_columns(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        priority VARCHAR(20) DEFAULT 'medium',
+        type VARCHAR(100),
+        assignee VARCHAR(255),
+        due_date DATE,
+        notes TEXT,
+        checklist JSONB DEFAULT '[]'::jsonb,
+        tags JSONB DEFAULT '[]'::jsonb,
+        custom_field_values JSONB DEFAULT '{}'::jsonb,
+        order_index INTEGER DEFAULT 0,
+        is_archived BOOLEAN DEFAULT FALSE,
+        archived_at TIMESTAMP,
+        column_changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS kanban_automations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        board_id UUID REFERENCES kanban_boards(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        trigger_type VARCHAR(50) NOT NULL,
+        trigger_conditions JSONB NOT NULL,
+        action_type VARCHAR(50) NOT NULL,
+        action_data JSONB NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      ALTER TABLE kanban_boards ADD COLUMN IF NOT EXISTS background TEXT;
+      ALTER TABLE kanban_tasks ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'::jsonb;
+      ALTER TABLE kanban_columns ADD COLUMN IF NOT EXISTS wip_limit INTEGER DEFAULT NULL;
+      ALTER TABLE kanban_tasks ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT FALSE;
+      ALTER TABLE kanban_tasks ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP;
+      ALTER TABLE kanban_tasks ADD COLUMN IF NOT EXISTS column_changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+      ALTER TABLE kanban_boards ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '[]'::jsonb;
+      ALTER TABLE kanban_tasks ADD COLUMN IF NOT EXISTS custom_field_values JSONB DEFAULT '{}'::jsonb;
     `);
 
     console.log('Database tables verified/created');

@@ -18,6 +18,7 @@ import History            from './pages/History';
 import Settings           from './pages/Settings';
 import UserManagement     from './pages/UserManagement';
 import Profile            from './pages/Profile';
+import Kanban             from './pages/Kanban';
 
 import './index.css';
 
@@ -45,6 +46,7 @@ const ProtectedRoute = ({ children }) => {
     path !== '/settings' &&
     path !== '/users' &&
     path !== '/teams' &&
+    path !== '/kanban' &&
     user.allowed_screens &&
     !user.allowed_screens.includes(path)
   ) {
@@ -90,6 +92,7 @@ function AppRoutes() {
         <Route path="settings"     element={<Settings />} />
         <Route path="users"        element={<UserManagement />} />
         <Route path="profile"      element={<Profile />} />
+        <Route path="kanban"       element={<Kanban />} />
       </Route>
 
       {/* Catch-all (qualquer outra rota) */}
