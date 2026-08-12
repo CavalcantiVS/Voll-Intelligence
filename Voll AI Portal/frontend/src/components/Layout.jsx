@@ -89,24 +89,6 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobileSidebarOpen, setMobileSid
       <div className={`${styles.sidebar} ${isCollapsed ? styles.sidebarCollapsed : ''} ${isMobileSidebarOpen ? styles.sidebarMobileOpen : ''}`}>
         {/* Logotipo */}
         <div className={styles.sidebarLogo}>
-        <img src="/images/RemoveFundo Icon.png" alt="Voll" className={styles.logoImg} />
-        {!isCollapsed && <span>Voll Intelligence</span>}
-      </div>
-
-      {/* Navegação */}
-      <nav className={styles.sidebarNav} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        {renderGroup(mainItems)}
-
-        <div className={styles.navSectionLabel}>Ferramentas</div>
-        {renderGroup(toolItems)}
-
-        <div className={styles.navSectionLabel}>Sistema</div>
-        {renderGroup(systemItems)}
-
-        {!isTeamsPage && (
-          <button 
-            className={styles.sidebarToggleBtn} 
-            onClick={toggleSidebar}
           <img src="/images/RemoveFundo Icon.png" alt="Voll" className={styles.logoImg} />
           {!isCollapsed && <span>Voll Intelligence</span>}
         </div>
