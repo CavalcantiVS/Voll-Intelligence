@@ -84,7 +84,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     <div className={`${styles.sidebar} ${isCollapsed ? styles.sidebarCollapsed : ''}`}>
       {/* Logotipo */}
       <div className={styles.sidebarLogo}>
-        <img src="../images/RemoveFundo Icon.png" alt="Voll" className={styles.logoImg} />
+        <img src="/images/RemoveFundo Icon.png" alt="Voll" className={styles.logoImg} />
         {!isCollapsed && <span>Voll Intelligence</span>}
       </div>
 
