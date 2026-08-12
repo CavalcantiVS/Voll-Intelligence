@@ -1348,3 +1348,61 @@
   background: var(--voll-red-hover);
   transform: translateY(-1px);
 }
+
+/* ========================================================= */
+/* MOBILE RESPONSIVENESS                                     */
+/* ========================================================= */
+@media (max-width: 768px) {
+  .kanbanPage {
+    flex-direction: column;
+  }
+
+  .kanbanSidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    max-height: 200px; /* Reduced height for sidebar on mobile */
+    flex-shrink: 0;
+  }
+  
+  .kanbanSidebar.collapsed {
+    transform: translateY(-100%);
+    margin-bottom: -200px;
+    margin-right: 0;
+  }
+
+  .kanbanContainer {
+    padding: 16px;
+    flex: 1;
+  }
+
+  .kanbanBoard {
+    padding-bottom: 16px;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 16px;
+  }
+
+  .kanbanColumn {
+    scroll-snap-align: center;
+    flex: 0 0 85vw; /* Each column takes most of the width, allowing swiping */
+  }
+
+  .kanbanTitleArea h1 {
+    font-size: 1.25rem;
+  }
+
+  .kanbanHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .addTaskBtn span, .addColBtn span {
+    display: none; /* Hide text, keep icons on mobile for space */
+  }
+}

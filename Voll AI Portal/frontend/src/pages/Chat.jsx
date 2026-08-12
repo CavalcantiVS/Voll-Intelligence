@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert, Paperclip, Mic, MicOff, Share2, PanelLeftClose, PanelLeftOpen, Folder, FolderOpen, FolderPlus, ChevronRight, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, MessageSquarePlus, Send, Loader2, Bot, Edit2, Check, X, ShieldAlert, Paperclip, Mic, MicOff, Share2, PanelLeftClose, PanelLeftOpen, Folder, FolderOpen, FolderPlus, ChevronRight, ChevronDown, History } from 'lucide-react';
 import ChatMessage from '../components/ChatMessage';
 import TypingIndicator from '../components/TypingIndicator';
 import { useToast } from '../contexts/ToastContext';
@@ -17,6 +17,7 @@ const Chat = () => {
   const location = useLocation();
   const selectSessionId = location.state?.selectSessionId;
   const [isDark, setIsDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark');
+  const [isMobileHistoryOpen, setIsMobileHistoryOpen] = useState(false);
 
   // Sincronizar com mudanças de tema
   useEffect(() => {
@@ -625,9 +626,12 @@ const Chat = () => {
 
   return (
     <div className={styles.chatPage}>
+      {isMobileHistoryOpen && (
+        <div className={styles.sidebarOverlay} onClick={() => setIsMobileHistoryOpen(false)}></div>
+      )}
       {/* Sidebar conversas privadas */}
       <div 
-        className={styles.sidebar} 
+        className={`${styles.sidebar} ${isMobileHistoryOpen ? styles.sidebarMobileOpen : ''}`} 
         style={{ 
           display: 'flex', 
           flexDirection: 'column', 
@@ -725,6 +729,11 @@ const Chat = () => {
       <div className={styles.main} style={{ position: 'relative' }}>
         {/* Canvas de Fundo Tecnológico */}
         <TechBackground isDark={isDark} />
+
+        <button className={styles.mobileHistoryBtn} onClick={() => setIsMobileHistoryOpen(true)}>
+          <History size={16} />
+          Ver Histórico de Conversas
+        </button>
 
         {/* Cabeçalho */}
         <div className="chat-main-header" style={{

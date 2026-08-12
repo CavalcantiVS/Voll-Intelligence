@@ -934,3 +934,80 @@
   color: var(--text-muted);
   opacity: 0.3;
 }
+
+/* ========================================================= */
+/* MOBILE RESPONSIVENESS                                     */
+/* ========================================================= */
+@media (max-width: 768px) {
+  .chatPage {
+    position: relative;
+  }
+  
+  .sidebar {
+    position: absolute;
+    top: 0;
+    left: -280px;
+    height: 100%;
+    width: 280px;
+    z-index: 200;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.1);
+  }
+  
+  .sidebarMobileOpen {
+    transform: translateX(280px);
+  }
+  
+  .sidebarOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 199;
+    backdrop-filter: blur(2px);
+  }
+  
+  .mobileHistoryBtn {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 12px 16px 0;
+    cursor: pointer;
+    box-shadow: var(--shadow-xs);
+  }
+  
+  .messages {
+    padding: 16px 12px;
+  }
+  
+  .messageBody {
+    max-width: 85%;
+  }
+  
+  .inputArea {
+    padding: 12px;
+  }
+  
+  .welcome {
+    padding: 32px 16px;
+  }
+  
+  .welcomeSuggestions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobileHistoryBtn, .sidebarOverlay {
+    display: none;
+  }
+}

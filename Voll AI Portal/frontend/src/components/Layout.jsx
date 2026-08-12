@@ -19,6 +19,7 @@ import {
   ChevronRight,
   KanbanSquare,
   Bell,
+  Menu,
 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,7 +30,7 @@ import styles from './Layout.module.css';
 /* ----------------------------------------------------------------
    Barra Lateral
 ---------------------------------------------------------------- */
-const Sidebar = ({ isCollapsed, toggleSidebar }) => {
+const Sidebar = ({ isCollapsed, toggleSidebar, isMobileSidebarOpen, setMobileSidebarOpen }) => {
   const { user } = useAuth();
   const location = useLocation();
   const isTeamsPage = location.pathname === '/teams';
@@ -81,9 +82,13 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     ));
 
   return (
-    <div className={`${styles.sidebar} ${isCollapsed ? styles.sidebarCollapsed : ''}`}>
-      {/* Logotipo */}
-      <div className={styles.sidebarLogo}>
+    <>
+      {isMobileSidebarOpen && (
+        <div className={styles.sidebarOverlay} onClick={() => setMobileSidebarOpen(false)}></div>
+      )}
+      <div className={`${styles.sidebar} ${isCollapsed ? styles.sidebarCollapsed : ''} ${isMobileSidebarOpen ? styles.sidebarMobileOpen : ''}`}>
+        {/* Logotipo */}
+        <div className={styles.sidebarLogo}>
         <img src="/images/RemoveFundo Icon.png" alt="Voll" className={styles.logoImg} />
         {!isCollapsed && <span>Voll Intelligence</span>}
       </div>
@@ -102,21 +107,40 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
           <button 
             className={styles.sidebarToggleBtn} 
             onClick={toggleSidebar}
-            title={isCollapsed ? "Expandir Menu" : "Recolher Menu"}
-            type="button"
-          >
-            {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-          </button>
-        )}
-      </nav>
-    </div>
+          <img src="/images/RemoveFundo Icon.png" alt="Voll" className={styles.logoImg} />
+          {!isCollapsed && <span>Voll Intelligence</span>}
+        </div>
+
+        {/* Navegação */}
+        <nav className={styles.sidebarNav} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {renderGroup(mainItems)}
+
+          <div className={styles.navSectionLabel}>Ferramentas</div>
+          {renderGroup(toolItems)}
+
+          <div className={styles.navSectionLabel}>Sistema</div>
+          {renderGroup(systemItems)}
+
+          {!isTeamsPage && (
+            <button 
+              className={styles.sidebarToggleBtn} 
+              onClick={toggleSidebar}
+              title={isCollapsed ? "Expandir Menu" : "Recolher Menu"}
+              type="button"
+            >
+              {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </button>
+          )}
+        </nav>
+      </div>
+    </>
   );
 };
 
 /* ----------------------------------------------------------------
    Cabeçalho
 ---------------------------------------------------------------- */
-const Header = ({ isDarkMode, toggleTheme }) => {
+const Header = ({ toggleSidebar, setMobileSidebarOpen, isDarkMode, toggleTheme }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -266,6 +290,10 @@ const Header = ({ isDarkMode, toggleTheme }) => {
 
   return (
     <div className={styles.header}>
+      <button className={styles.mobileMenuBtn} onClick={() => setMobileSidebarOpen(true)}>
+        <Menu size={24} />
+      </button>
+
       <div className={styles.headerSearchWrapper} ref={searchRef}>
         <div className={`${styles.headerSearch} ${focused ? styles.headerSearchFocus : ''}`}>
           <Search size={16} />
@@ -461,17 +489,12 @@ const AnimatedOutlet = () => {
 };
 
 /* ----------------------------------------------------------------
-   Layout
+   AppLayout (Ponto de entrada)
 ---------------------------------------------------------------- */
-const Layout = () => {
+export default function AppLayout() {
+  const { user } = useAuth();
   const [isDarkMode, setIsDarkMode] = React.useState(false);
   const [isZenMode, setIsZenMode] = React.useState(false);
-
-  React.useEffect(() => {
-    const handleZen = () => setIsZenMode(prev => !prev);
-    window.addEventListener('toggle-zen-mode', handleZen);
-    return () => window.removeEventListener('toggle-zen-mode', handleZen);
-  }, []);
   const location = useLocation();
   const isChatPage = location.pathname === '/chat' || location.pathname === '/teams';
   const isTeamsPage = location.pathname === '/teams';
@@ -479,8 +502,16 @@ const Layout = () => {
   const [isSidebarCollapsedState, setIsSidebarCollapsedState] = React.useState(() => {
     return localStorage.getItem('sidebar_collapsed') === 'true';
   });
+  
+  const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const isSidebarCollapsed = isTeamsPage ? true : isSidebarCollapsedState;
+
+  React.useEffect(() => {
+    const handleZen = () => setIsZenMode(prev => !prev);
+    window.addEventListener('toggle-zen-mode', handleZen);
+    return () => window.removeEventListener('toggle-zen-mode', handleZen);
+  }, []);
 
   const toggleSidebar = () => {
     if (isTeamsPage) return; // Prevent toggling when forced collapsed
@@ -516,17 +547,24 @@ const Layout = () => {
     window.dispatchEvent(new Event('theme-change'));
   };
 
+  // Fecha o menu mobile se a rota mudar
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [location.pathname]);
+
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className={styles.appContainer}>
-      {!isZenMode && <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />}
+      {!isZenMode && <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} isMobileSidebarOpen={isMobileSidebarOpen} setMobileSidebarOpen={setMobileSidebarOpen} />}
       <div className={styles.mainContent}>
-        {!isZenMode && <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />}
+        {!isZenMode && <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} toggleSidebar={toggleSidebar} setMobileSidebarOpen={setMobileSidebarOpen} />}
         <div className={`${styles.pageContent} ${isChatPage ? styles.chatPageContainer : ''}`}>
           <AnimatedOutlet />
         </div>
       </div>
     </div>
   );
-};
-
-export default Layout;
+}

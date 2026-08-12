@@ -654,3 +654,76 @@
   background: var(--voll-red);
   border-radius: 50%;
 }
+
+/* ========================================================= */
+/* MOBILE RESPONSIVENESS                                     */
+/* ========================================================= */
+@media (max-width: 768px) {
+  .sidebar {
+    position: absolute;
+    left: -280px;
+    width: 280px;
+    min-width: 280px;
+    height: 100vh;
+    z-index: 1000;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .sidebarMobileOpen {
+    transform: translateX(280px);
+    box-shadow: 0 0 24px rgba(0,0,0,0.5);
+  }
+
+  /* Esconde o botão de collapse no mobile já que a sidebar é offcanvas */
+  .sidebarToggleBtn {
+    display: none;
+  }
+
+  .header {
+    padding: 0 16px;
+    height: 60px;
+  }
+
+  .headerSearchWrapper {
+    display: none;
+  }
+
+  .mobileMenuBtn {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    margin-right: 12px;
+  }
+
+  .pageContent {
+    padding: 16px;
+  }
+  
+  .chatPageContainer {
+    padding: 0;
+  }
+
+  .sidebarOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+    backdrop-filter: blur(2px);
+  }
+}
+
+/* Hide mobile elements on desktop */
+@media (min-width: 769px) {
+  .mobileMenuBtn, .sidebarOverlay {
+    display: none;
+  }
+}
+
