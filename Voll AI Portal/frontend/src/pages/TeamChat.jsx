@@ -58,7 +58,7 @@ const renderInvitationIcon = (invite) => {
   return <Users size={14} style={{ color: 'var(--text-muted)' }} />;
 };
 
-const BACKEND = 'http://localhost:3001';
+import API_URL from '../api';
 
 const TeamChat = () => {
   const { user, token } = useAuth();
@@ -121,7 +121,7 @@ const TeamChat = () => {
 
   // Conecta ao Socket.io na montagem
   useEffect(() => {
-    const newSocket = io(BACKEND, {
+    const newSocket = io(API_URL, {
       transports: ['websocket', 'polling']
     });
     setSocket(newSocket);
@@ -224,7 +224,7 @@ const TeamChat = () => {
   // Carrega convites
   const loadInvitations = async () => {
     try {
-      const res = await fetch(`${BACKEND}/api/teams/invitations`, {
+      const res = await fetch(`${API_URL}/api/teams/invitations`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -240,7 +240,7 @@ const TeamChat = () => {
   const loadTeams = async () => {
     setLoadingTeams(true);
     try {
-      const res = await fetch(`${BACKEND}/api/teams`, {
+      const res = await fetch(`${API_URL}/api/teams`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -261,7 +261,7 @@ const TeamChat = () => {
   // Carrega membros da equipe e papel do usuário
   const loadTeamMembers = async (teamId) => {
     try {
-      const res = await fetch(`${BACKEND}/api/teams/${teamId}/members`, {
+      const res = await fetch(`${API_URL}/api/teams/${teamId}/members`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -280,7 +280,7 @@ const TeamChat = () => {
   // Lida com aceitação de convite
   const handleAcceptInvite = async (invite) => {
     try {
-      const res = await fetch(`${BACKEND}/api/teams/invitations/${invite.membership_id}/accept`, {
+      const res = await fetch(`${API_URL}/api/teams/invitations/${invite.membership_id}/accept`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -299,7 +299,7 @@ const TeamChat = () => {
   const handleRejectInvite = async (invite) => {
     if (!window.confirm(`Tem certeza de que deseja recusar o convite para a equipe "${invite.team_name}"?`)) return;
     try {
-      const res = await fetch(`${BACKEND}/api/teams/invitations/${invite.membership_id}/reject`, {
+      const res = await fetch(`${API_URL}/api/teams/invitations/${invite.membership_id}/reject`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -317,7 +317,7 @@ const TeamChat = () => {
     e.preventDefault();
     if (!newTeamName.trim()) return;
     try {
-      const res = await fetch(`${BACKEND}/api/teams`, {
+      const res = await fetch(`${API_URL}/api/teams`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -378,7 +378,7 @@ const TeamChat = () => {
     setLoading(true);
     
     try {
-      const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}/members/${user.id}`, {
+      const res = await fetch(`${API_URL}/api/teams/${activeTeam.id}/members/${user.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -416,7 +416,7 @@ const TeamChat = () => {
     e.preventDefault();
     if (!editTeamName.trim() || !activeTeam) return;
     try {
-      const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}`, {
+      const res = await fetch(`${API_URL}/api/teams/${activeTeam.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -443,7 +443,7 @@ const TeamChat = () => {
     if (!window.confirm(`ATENÇÃO: Tem certeza de que deseja excluir permanentemente a equipe "${activeTeam.nome}" e todas as suas conversas compartilhadas? Esta ação não pode ser desfeita.`)) return;
     
     try {
-      const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}`, {
+      const res = await fetch(`${API_URL}/api/teams/${activeTeam.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -473,7 +473,7 @@ const TeamChat = () => {
   // Carrega todas as sessões (equipe + privada) para sincronizar estado
   const loadSessions = async () => {
     try {
-      const res = await fetch(`${BACKEND}/api/chat/sessions`, {
+      const res = await fetch(`${API_URL}/api/chat/sessions`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -490,7 +490,7 @@ const TeamChat = () => {
     setActiveSession(session);
     setMessages([]);
     try {
-      const res = await fetch(`${BACKEND}/api/chat/sessions/${session.id}/messages`, {
+      const res = await fetch(`${API_URL}/api/chat/sessions/${session.id}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -507,7 +507,7 @@ const TeamChat = () => {
     setMessages([]);
     
     try {
-      const res = await fetch(`${BACKEND}/api/chat/sessions`, {
+      const res = await fetch(`${API_URL}/api/chat/sessions`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const allSessions = await res.json();
@@ -531,7 +531,7 @@ const TeamChat = () => {
   const createNewTeamSession = async (teamId, title = 'Nova conversa') => {
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND}/api/chat/sessions`, {
+      const res = await fetch(`${API_URL}/api/chat/sessions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -560,7 +560,7 @@ const TeamChat = () => {
     e.stopPropagation();
     if (!window.confirm('Excluir esta conversa compartilhada?')) return;
     try {
-      await fetch(`${BACKEND}/api/chat/sessions/${sessionId}`, {
+      await fetch(`${API_URL}/api/chat/sessions/${sessionId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -588,7 +588,7 @@ const TeamChat = () => {
   const saveRename = async (sessionId) => {
     if (!editTitle.trim()) return;
     try {
-      await fetch(`${BACKEND}/api/chat/sessions/${sessionId}`, {
+      await fetch(`${API_URL}/api/chat/sessions/${sessionId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -626,7 +626,7 @@ const TeamChat = () => {
         formData.append('file', fileToUpload);
       }
 
-      const res = await fetch(`${BACKEND}/api/chat/message`, {
+      const res = await fetch(`${API_URL}/api/chat/message`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -640,7 +640,7 @@ const TeamChat = () => {
       // Renomeia a sessão automaticamente
       if (activeSession.title === 'Nova conversa') {
         const autoTitle = messageInput.slice(0, 50);
-        await fetch(`${BACKEND}/api/chat/sessions/${activeSession.id}`, {
+        await fetch(`${API_URL}/api/chat/sessions/${activeSession.id}`, {
           method: 'PATCH',
           headers: { 
             'Content-Type': 'application/json',
@@ -663,7 +663,7 @@ const TeamChat = () => {
   // Edita mensagem do assistente de forma colaborativa
   const handleEditMessage = async (messageId, newContent) => {
     try {
-      const res = await fetch(`${BACKEND}/api/chat/messages/${messageId}`, {
+      const res = await fetch(`${API_URL}/api/chat/messages/${messageId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1557,7 +1557,7 @@ const TeamChat = () => {
                         setSearchStatus('searching');
                         setSearchedUser(null);
                         try {
-                          const res = await fetch(`${BACKEND}/api/teams/users/search?email=${encodeURIComponent(searchEmail.trim())}`, {
+                          const res = await fetch(`${API_URL}/api/teams/users/search?email=${encodeURIComponent(searchEmail.trim())}`, {
                             headers: { Authorization: `Bearer ${token}` }
                           });
                           if (!res.ok) {
@@ -1621,7 +1621,7 @@ const TeamChat = () => {
                         style={{ padding: '4px 10px', fontSize: '0.75rem' }}
                         onClick={async () => {
                           try {
-                            const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}/members`, {
+                            const res = await fetch(`${API_URL}/api/teams/${activeTeam.id}/members`, {
                               method: 'POST',
                               headers: {
                                 'Content-Type': 'application/json',
@@ -1712,7 +1712,7 @@ const TeamChat = () => {
                               onChange={async (e) => {
                                 const newRole = e.target.value;
                                 try {
-                                  const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}/members/${member.id}`, {
+                                  const res = await fetch(`${API_URL}/api/teams/${activeTeam.id}/members/${member.id}`, {
                                     method: 'PATCH',
                                     headers: {
                                       'Content-Type': 'application/json',
@@ -1742,7 +1742,7 @@ const TeamChat = () => {
                               onClick={async () => {
                                 if (!window.confirm(`Tem certeza de que deseja remover ${member.name} da equipe?`)) return;
                                 try {
-                                  const res = await fetch(`${BACKEND}/api/teams/${activeTeam.id}/members/${member.id}`, {
+                                  const res = await fetch(`${API_URL}/api/teams/${activeTeam.id}/members/${member.id}`, {
                                     method: 'DELETE',
                                     headers: { Authorization: `Bearer ${token}` }
                                   });

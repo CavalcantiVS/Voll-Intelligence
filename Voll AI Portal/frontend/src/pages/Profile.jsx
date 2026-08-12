@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Camera, Mail, User, Key, Shield, CheckCircle2, AlertCircle, ShieldCheck, Cpu, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMsal } from '@azure/msal-react';
+import API_URL from '../api';
 
 const screenLabels = {
   '/': 'Dashboard',
@@ -95,7 +96,7 @@ const Profile = () => {
         return;
       }
 
-      const res = await fetch('http://localhost:3001/api/auth/profile', {
+      const res = await fetch(`${API_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

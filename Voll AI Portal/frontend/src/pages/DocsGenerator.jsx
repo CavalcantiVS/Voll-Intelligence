@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FileText, Loader2, Copy, Check } from 'lucide-react';
+import API_URL from '../api';
 
 const DocsGenerator = () => {
   const [formData, setFormData] = useState({
@@ -40,7 +41,7 @@ Retorne uma estrutura de documentação clara contendo Visão Geral, Endpoints/E
     const prompt = generatePrompt();
 
     try {
-      const response = await fetch('http://localhost:3001/api/ai/generate', {
+      const response = await fetch(`${API_URL}/api/ai/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

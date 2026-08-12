@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Code, Loader2, Copy, Check } from 'lucide-react';
+import API_URL from '../api';
 
 const PromptGenerator = () => {
   const [formData, setFormData] = useState({ objetivo: '', contexto: '', parametros: '' });
@@ -26,7 +27,7 @@ ${formData.parametros}
 Retorne um prompt altamente qualificado, detalhado e pronto para ser copiado e colado em uma IA como GPT-4.`;
 
     try {
-      const response = await fetch('http://localhost:3001/api/ai/generate', {
+      const response = await fetch(`${API_URL}/api/ai/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

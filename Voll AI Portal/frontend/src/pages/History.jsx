@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { History as HistoryIcon, Copy, RotateCcw, Download, Clock, Inbox, Trash2, ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import API_URL from '../api';
 
 /* ----------------------------------------------------------------
    Skeleton do card de histórico
@@ -58,7 +59,7 @@ const History = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`http://localhost:3001/api/history?userId=${user.id}`);
+      const res = await fetch(`${API_URL}/api/history?userId=${user.id}`);
       if (!res.ok) throw new Error('Falha ao carregar');
       const data = await res.json();
       setHistory(Array.isArray(data) ? data : []);
@@ -141,7 +142,7 @@ const History = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Tem certeza que deseja apagar este registro?')) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/history/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/api/history/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Falha ao deletar');
       setHistory(prev => prev.filter(item => item.id !== id));
     } catch (err) {

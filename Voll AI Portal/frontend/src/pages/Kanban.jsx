@@ -22,7 +22,7 @@ import { useToast } from '../contexts/ToastContext';
 import { io } from 'socket.io-client';
 import styles from './Kanban.module.css';
 
-const BACKEND = 'http://localhost:3001';
+import API_URL from '../api';
 const dotColors = ['todo', 'inProgress', 'review', 'done', 'purple', 'pink', 'teal', 'orange'];
 
 const bgPresets = [
@@ -250,7 +250,7 @@ export default function Kanban() {
 
   // Inicializa Socket
   useEffect(() => {
-    const newSocket = io(BACKEND, { transports: ['websocket', 'polling'] });
+    const newSocket = io(API_URL, { transports: ['websocket', 'polling'] });
     setSocket(newSocket);
     return () => newSocket.close();
   }, []);
@@ -287,7 +287,7 @@ export default function Kanban() {
 
   const loadBoards = async () => {
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/boards`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/api/kanban/boards`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       
       const myBoards = data.filter(b => b.membership_status === 'aceito');
@@ -306,7 +306,7 @@ export default function Kanban() {
 
   const loadAccessRequests = async () => {
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/boards/access-requests`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/api/kanban/boards/access-requests`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       setAccessRequests(data);
     } catch (err) {
@@ -316,7 +316,7 @@ export default function Kanban() {
 
   const loadInvitations = async () => {
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/boards/invitations`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/api/kanban/boards/invitations`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       setInvitations(data);
     } catch (err) {
@@ -326,7 +326,7 @@ export default function Kanban() {
 
   const loadKanbanData = async (boardId) => {
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/boards/${boardId}/data`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/api/kanban/boards/${boardId}/data`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) return;
       const data = await res.json();
       setColumns(data.columns.map(c => ({ ...c, id: c.id })));
@@ -338,7 +338,7 @@ export default function Kanban() {
 
   const handleRequestAccess = async (board) => {
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/boards/${board.id}/request-access`, {
+      const res = await fetch(`${API_URL}/api/kanban/boards/${board.id}/request-access`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -353,7 +353,7 @@ export default function Kanban() {
 
   const handleApproveRequest = async (membershipId) => {
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/boards/requests/${membershipId}/approve`, {
+      const res = await fetch(`${API_URL}/api/kanban/boards/requests/${membershipId}/approve`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -382,7 +382,7 @@ export default function Kanban() {
         avatar: 'preset:Briefcase',
         background: newBoardBg
       };
-      const res = await fetch(`${BACKEND}/api/kanban/boards`, {
+      const res = await fetch(`${API_URL}/api/kanban/boards`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -422,7 +422,7 @@ export default function Kanban() {
   const handleUpdateBoardSettings = async () => {
     if (!editBoardName.trim() || !activeBoard) return;
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/boards/${activeBoard.id}`, {
+      const res = await fetch(`${API_URL}/api/kanban/boards/${activeBoard.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ nome: editBoardName.trim(), background: editBoardBg, tags: editBoardTags })
@@ -442,7 +442,7 @@ export default function Kanban() {
   const handleDeleteBoard = async (boardId) => {
     if (!window.confirm('Tem certeza que deseja excluir este quadro? Todas as colunas e tarefas serão perdidas permanentemente!')) return;
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/boards/${boardId}`, {
+      const res = await fetch(`${API_URL}/api/kanban/boards/${boardId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -471,7 +471,7 @@ export default function Kanban() {
 
   const handleAcceptInvite = async (inv) => {
     try {
-      await fetch(`${BACKEND}/api/kanban/boards/invitations/${inv.membership_id}/accept`, {
+      await fetch(`${API_URL}/api/kanban/boards/invitations/${inv.membership_id}/accept`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -485,7 +485,7 @@ export default function Kanban() {
 
   const loadMembers = async () => {
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/boards/${activeBoard.id}/members`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/api/kanban/boards/${activeBoard.id}/members`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       setBoardMembers(data);
     } catch (err) {
@@ -496,7 +496,7 @@ export default function Kanban() {
   const handleInviteMember = async () => {
     if (!inviteEmail.trim()) return;
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/boards/${activeBoard.id}/members`, {
+      const res = await fetch(`${API_URL}/api/kanban/boards/${activeBoard.id}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ email: inviteEmail.trim() })
@@ -513,7 +513,7 @@ export default function Kanban() {
 
   const handleRemoveMember = async (userId) => {
     try {
-      await fetch(`${BACKEND}/api/kanban/boards/${activeBoard.id}/members/${userId}`, {
+      await fetch(`${API_URL}/api/kanban/boards/${activeBoard.id}/members/${userId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -526,7 +526,7 @@ export default function Kanban() {
 
   const handleRoleChange = async (userId, newRole) => {
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/boards/${activeBoard.id}/members/${userId}`, {
+      const res = await fetch(`${API_URL}/api/kanban/boards/${activeBoard.id}/members/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ papel: newRole })
@@ -553,7 +553,7 @@ export default function Kanban() {
     const trimmed = newColumnTitle.trim();
     if (!trimmed || !activeBoard) return;
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/columns`, {
+      const res = await fetch(`${API_URL}/api/kanban/columns`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ board_id: activeBoard.id, title: trimmed, dot_class: dotColors[columns.length % dotColors.length], order_index: columns.length })
@@ -570,7 +570,7 @@ export default function Kanban() {
 
   const handleRenameColumn = async (colId, newTitle, wipLimit) => {
     try {
-      await fetch(`${BACKEND}/api/kanban/columns/${colId}`, {
+      await fetch(`${API_URL}/api/kanban/columns/${colId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ title: newTitle, wip_limit: wipLimit })
@@ -590,7 +590,7 @@ export default function Kanban() {
     }
     const fallbackId = remaining[0].id;
     try {
-      await fetch(`${BACKEND}/api/kanban/columns/${colId}`, {
+      await fetch(`${API_URL}/api/kanban/columns/${colId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ fallback_column_id: fallbackId })
@@ -606,7 +606,7 @@ export default function Kanban() {
   const reorderColumnsInDb = async (newCols) => {
     try {
       const payload = newCols.map((c, i) => ({ id: c.id, order_index: i }));
-      await fetch(`${BACKEND}/api/kanban/columns/reorder`, {
+      await fetch(`${API_URL}/api/kanban/columns/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ columns: payload })
@@ -728,7 +728,7 @@ export default function Kanban() {
     });
 
     try {
-      await fetch(`${BACKEND}/api/kanban/tasks/reorder`, {
+      await fetch(`${API_URL}/api/kanban/tasks/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ tasks: payload })
@@ -758,7 +758,7 @@ export default function Kanban() {
         tags: newTask.tags
       };
 
-      const res = await fetch(`${BACKEND}/api/kanban/tasks`, {
+      const res = await fetch(`${API_URL}/api/kanban/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -790,7 +790,7 @@ export default function Kanban() {
         tags: editingTask.tags
       };
 
-      await fetch(`${BACKEND}/api/kanban/tasks/${editingTask.id}`, {
+      await fetch(`${API_URL}/api/kanban/tasks/${editingTask.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -806,7 +806,7 @@ export default function Kanban() {
 
   const handleDeleteTask = async (taskId) => {
     try {
-      await fetch(`${BACKEND}/api/kanban/tasks/${taskId}`, {
+      await fetch(`${API_URL}/api/kanban/tasks/${taskId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -820,7 +820,7 @@ export default function Kanban() {
   const loadArchivedTasks = async () => {
     if (!activeBoard) return;
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/boards/${activeBoard.id}/archive`, {
+      const res = await fetch(`${API_URL}/api/kanban/boards/${activeBoard.id}/archive`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -834,7 +834,7 @@ export default function Kanban() {
 
   const handleToggleArchiveTask = async (taskId, is_archived = true) => {
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/tasks/${taskId}/archive`, {
+      const res = await fetch(`${API_URL}/api/kanban/tasks/${taskId}/archive`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ is_archived })
@@ -861,7 +861,7 @@ export default function Kanban() {
   const loadAutomations = async () => {
     if (!activeBoard) return;
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/boards/${activeBoard.id}/automations`, {
+      const res = await fetch(`${API_URL}/api/kanban/boards/${activeBoard.id}/automations`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) setAutomations(await res.json());
@@ -883,7 +883,7 @@ export default function Kanban() {
           days: newAutomation.trigger_type === 'time_in_column' ? Number(newAutomation.trigger_conditions.days) : undefined
         }
       };
-      const res = await fetch(`${BACKEND}/api/kanban/boards/${activeBoard.id}/automations`, {
+      const res = await fetch(`${API_URL}/api/kanban/boards/${activeBoard.id}/automations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -902,7 +902,7 @@ export default function Kanban() {
 
   const handleDeleteAutomation = async (id) => {
     try {
-      const res = await fetch(`${BACKEND}/api/kanban/automations/${id}`, {
+      const res = await fetch(`${API_URL}/api/kanban/automations/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });

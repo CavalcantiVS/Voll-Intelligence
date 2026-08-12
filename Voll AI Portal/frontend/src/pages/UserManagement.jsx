@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-const BACKEND = 'http://localhost:3001';
+import API_URL from '../api';
 
 const ROLES = [
   'Administrador Geral',
@@ -345,10 +345,10 @@ const UserManagement = () => {
   const fetchAll = useCallback(async () => {
     try {
       const [usersRes, deptsRes] = await Promise.all([
-        fetch(`${BACKEND}/api/users?userId=${user?.id}`, {
+        fetch(`${API_URL}/api/users?userId=${user?.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch(`${BACKEND}/api/departments?userId=${user?.id}`, {
+        fetch(`${API_URL}/api/departments?userId=${user?.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
@@ -379,7 +379,7 @@ const UserManagement = () => {
     if (payload) opts.body = JSON.stringify({ ...payload, userId: user?.id });
     else if (method !== 'GET') opts.body = JSON.stringify({ userId: user?.id });
 
-    const res = await fetch(`${BACKEND}${url}`, opts);
+    const res = await fetch(`${API_URL}${url}`, opts);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || 'Erro na requisição');

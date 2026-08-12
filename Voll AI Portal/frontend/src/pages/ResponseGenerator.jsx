@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Headset, Loader2, Copy, Check, FileText, Mic, MicOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import API_URL from '../api';
 
 /* ----------------------------------------------------------------
    Linhas de esqueleto compartilhadas enquanto a IA está gerando
@@ -96,7 +97,7 @@ const ResponseGenerator = () => {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:3001/api/ai/generate', {
+      const res = await fetch(`${API_URL}/api/ai/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

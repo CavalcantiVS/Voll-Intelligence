@@ -20,7 +20,16 @@ const { startAutomationRunner } = require('./automationsRunner');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+// CORS: aceita FRONTEND_URL em produção ou qualquer origem em dev
+const allowedOrigins = process.env.FRONTEND_URL
+  ? [process.env.FRONTEND_URL, 'http://localhost:5173']
+  : ['*'];
+
+app.use(cors({
+  origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  credentials: true,
+}));
 app.use(express.json({ limit: '10mb' }));
 
 // Rotas
@@ -42,7 +51,7 @@ app.get('/', (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
     methods: ['GET', 'POST']
   }
 });

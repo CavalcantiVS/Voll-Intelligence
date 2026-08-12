@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import API_URL from '../api';
 import PageTransition from './PageTransition';
 import styles from './Layout.module.css';
 
@@ -133,7 +134,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
-      const res = await fetch('http://localhost:3001/api/notifications', {
+      const res = await fetch(`${API_URL}/api/notifications`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -157,7 +158,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
     try {
       const token = localStorage.getItem('token');
       if (!notif.is_read) {
-        await fetch(`http://localhost:3001/api/notifications/${notif.id}/read`, {
+        await fetch(`${API_URL}/api/notifications/${notif.id}/read`, {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -175,7 +176,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
   const handleReadAll = async () => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:3001/api/notifications/read-all`, {
+      await fetch(`${API_URL}/api/notifications/read-all`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -195,7 +196,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
   const handleFocus = async () => {
     setFocused(true);
     try {
-      const res = await fetch('http://localhost:3001/api/chat/sessions');
+      const res = await fetch(`${API_URL}/api/chat/sessions`);
       const data = await res.json();
       if (Array.isArray(data)) {
         setSessions(data);

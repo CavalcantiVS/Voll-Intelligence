@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import TechBackground from '../components/TechBackground';
 
 import styles from './Chat.module.css';
-const BACKEND = 'http://localhost:3001';
+import API_URL from '../api';
 
 const Chat = () => {
   const { user, token } = useAuth();
@@ -78,7 +78,7 @@ const Chat = () => {
     setLoading(true);
     setIsSharedPreview(true);
     try {
-      const sessionRes = await fetch(`${BACKEND}/api/chat/sessions/${shareId}`, {
+      const sessionRes = await fetch(`${API_URL}/api/chat/sessions/${shareId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!sessionRes.ok) {
@@ -87,13 +87,13 @@ const Chat = () => {
       const sessionInfo = await sessionRes.json();
       setSharedSessionInfo(sessionInfo);
 
-      const messagesRes = await fetch(`${BACKEND}/api/chat/sessions/${shareId}/messages`, {
+      const messagesRes = await fetch(`${API_URL}/api/chat/sessions/${shareId}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const messagesData = await messagesRes.json();
       setMessages(messagesData);
       
-      const listRes = await fetch(`${BACKEND}/api/chat/sessions`, {
+      const listRes = await fetch(`${API_URL}/api/chat/sessions`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const listData = await listRes.json();
@@ -114,7 +114,7 @@ const Chat = () => {
     if (!sharedSessionInfo) return;
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND}/api/chat/sessions/${sharedSessionInfo.id}/clone`, {
+      const res = await fetch(`${API_URL}/api/chat/sessions/${sharedSessionInfo.id}/clone`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -147,7 +147,7 @@ const Chat = () => {
   const loadSessions = async () => {
     setLoadingSessions(true);
     try {
-      const res = await fetch(`${BACKEND}/api/chat/sessions`, {
+      const res = await fetch(`${API_URL}/api/chat/sessions`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -178,7 +178,7 @@ const Chat = () => {
   // === Funções de Pastas ===
   const loadFolders = async () => {
     try {
-      const res = await fetch(`${BACKEND}/api/chat/folders`, {
+      const res = await fetch(`${API_URL}/api/chat/folders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -196,7 +196,7 @@ const Chat = () => {
   const createFolder = async () => {
     if (!newFolderName.trim()) return;
     try {
-      const res = await fetch(`${BACKEND}/api/chat/folders`, {
+      const res = await fetch(`${API_URL}/api/chat/folders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name: newFolderName })
@@ -216,7 +216,7 @@ const Chat = () => {
     e.stopPropagation();
     if (!window.confirm('Excluir esta pasta? As conversas dentro dela NÃO serão apagadas.')) return;
     try {
-      await fetch(`${BACKEND}/api/chat/folders/${id}`, {
+      await fetch(`${API_URL}/api/chat/folders/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -229,7 +229,7 @@ const Chat = () => {
 
   const moveSessionToFolder = async (sessionId, folderId) => {
     try {
-      await fetch(`${BACKEND}/api/chat/sessions/${sessionId}/folder`, {
+      await fetch(`${API_URL}/api/chat/sessions/${sessionId}/folder`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ folderId })
@@ -248,7 +248,7 @@ const Chat = () => {
     setActiveSession(session);
     setMessages([]);
     try {
-      const res = await fetch(`${BACKEND}/api/chat/sessions/${session.id}/messages`, {
+      const res = await fetch(`${API_URL}/api/chat/sessions/${session.id}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -261,7 +261,7 @@ const Chat = () => {
   const createNewSession = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND}/api/chat/sessions`, {
+      const res = await fetch(`${API_URL}/api/chat/sessions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -289,7 +289,7 @@ const Chat = () => {
     e.stopPropagation();
     if (!window.confirm('Excluir esta conversa?')) return;
     try {
-      await fetch(`${BACKEND}/api/chat/sessions/${sessionId}`, {
+      await fetch(`${API_URL}/api/chat/sessions/${sessionId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -312,7 +312,7 @@ const Chat = () => {
   const saveRename = async (sessionId) => {
     if (!editTitle.trim()) return;
     try {
-      await fetch(`${BACKEND}/api/chat/sessions/${sessionId}`, {
+      await fetch(`${API_URL}/api/chat/sessions/${sessionId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -330,7 +330,7 @@ const Chat = () => {
 
   const handleEditMessage = async (messageId, newContent) => {
     try {
-      const res = await fetch(`${BACKEND}/api/chat/messages/${messageId}`, {
+      const res = await fetch(`${API_URL}/api/chat/messages/${messageId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -357,7 +357,7 @@ const Chat = () => {
     // Criar sessão se nenhuma existir
     if (!currentSession) {
       try {
-        const res = await fetch(`${BACKEND}/api/chat/sessions`, {
+        const res = await fetch(`${API_URL}/api/chat/sessions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -400,7 +400,7 @@ const Chat = () => {
         formData.append('file', fileToUpload);
       }
 
-      const res = await fetch(`${BACKEND}/api/chat/message`, {
+      const res = await fetch(`${API_URL}/api/chat/message`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -445,7 +445,7 @@ const Chat = () => {
       // Renomear sessão automaticamente
       if (currentSession.title === 'Nova conversa') {
         const autoTitle = messageInput.slice(0, 50);
-        await fetch(`${BACKEND}/api/chat/sessions/${currentSession.id}`, {
+        await fetch(`${API_URL}/api/chat/sessions/${currentSession.id}`, {
           method: 'PATCH',
           headers: { 
             'Content-Type': 'application/json',

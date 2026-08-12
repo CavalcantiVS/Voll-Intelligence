@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PenTool, Loader2, Copy, Check } from 'lucide-react';
+import API_URL from '../api';
 
 const RefineGenerator = () => {
   const [formData, setFormData] = useState({ textoLocal: '', objetivo: '' });
@@ -23,7 +24,7 @@ ${formData.objetivo}
 Retorne um texto com mais empatia, clareza e que seja apropriado para o atendimento ao cliente.`;
 
     try {
-      const response = await fetch('http://localhost:3001/api/ai/generate', {
+      const response = await fetch(`${API_URL}/api/ai/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

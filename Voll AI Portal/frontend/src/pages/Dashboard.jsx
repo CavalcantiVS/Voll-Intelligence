@@ -6,6 +6,7 @@ import {
   MessageSquare, ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import API_URL from '../api';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -125,8 +126,8 @@ const Dashboard = () => {
     setError(null);
     try {
       const [metricsRes, chartRes] = await Promise.all([
-        fetch(`http://localhost:3001/api/dashboard/metrics?userId=${user.id}`),
-        fetch(`http://localhost:3001/api/dashboard/chart?userId=${user.id}&days=${days}`)
+        fetch(`${API_URL}/api/dashboard/metrics?userId=${user.id}`),
+        fetch(`${API_URL}/api/dashboard/chart?userId=${user.id}&days=${days}`)
       ]);
 
       if (!metricsRes.ok || !chartRes.ok) throw new Error('Falha ao carregar dados');

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Settings, Loader2, Copy, Check, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import API_URL from '../api';
 
 const Skeleton = () => (
   <div className="output-panel__loading">
@@ -46,7 +47,7 @@ const AutomationGenerator = () => {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:3001/api/ai/generate', {
+      const res = await fetch(`${API_URL}/api/ai/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { loginRequest } from '../authConfig';
+import API_URL from '../api';
 
 const AuthContext = createContext(null);
-const BACKEND = 'http://localhost:3001';
 
 // ── AuthProvider ──────────────────────────────────────────────────
 export const AuthProvider = ({ children }) => {
@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
             }
 
             // Troca pelo token do backend Voll
-            const res = await fetch(`${BACKEND}/api/auth/microsoft`, {
+            const res = await fetch(`${API_URL}/api/auth/microsoft`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }) => {
       }
       
       try {
-        const res = await fetch(`${BACKEND}/api/auth/me`, {
+        const res = await fetch(`${API_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }) => {
 
   // ── Login tradicional (e-mail + senha) ───────────────────────────
   const login = useCallback(async (email, password) => {
-    const res = await fetch(`${BACKEND}/api/auth/login`, {
+    const res = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
